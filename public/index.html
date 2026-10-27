@@ -1,0 +1,970 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<title>Takeout Roulette</title>
+<meta name="description" content="Can't decide what to eat? Tap the button for a local Hamilton takeout spot.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🥡</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gabarito:wght@600;700;800;900&family=Figtree:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: phone app, four views (Spin, My lists, Explore, Map) above a floating pill tab bar. Spin is the hero: a 1-2-3 around one roulette-wheel button. Max 560px wide.
+   Look: cream ground, bright sky blue as the main colour, paler blues for the second layer, sun / coral / mint as playful pops (they make up the wheel). */
+:root{
+  --bg:#FBF6EC; --bg-top:#FFFDF8; --surface:#FFFFFF; --sunk:#EAF4FD; --line:#EEE6D8;
+  --fg:#16293B; --muted:#65707D;
+  --chili:#4FA8F0; --chili-hi:#BDE2FF; --chili-ink:#0E2A45; --chili-soft:#E1F0FD;
+  --herb:#0F8C74; --herb-soft:#DCF4EC;
+  --sun:#FFC83D; --sun-soft:#FFF2CC; --sun-ink:#7A5600;
+  --coral:#FF7A5C; --coral-soft:#FFE7E0; --coral-ink:#B83E22;
+  --slate:#5D6B7A; --slate-soft:#EEF1F4;
+  --ticket:#FFFFFF;
+  --shadow-sm:0 1px 2px rgba(22,41,59,.06),0 2px 8px rgba(22,41,59,.06);
+  --shadow:0 1px 2px rgba(22,41,59,.05),0 10px 28px rgba(22,41,59,.09);
+  --display:"Gabarito","Avenir Next",system-ui,sans-serif;
+  --body:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"DM Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+  --tabs:64px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#101B26; --bg-top:#16283A; --surface:#1A2836; --sunk:#213447; --line:#2A3D50;
+  --fg:#EEF4FA; --muted:#9FB0C2;
+  --chili:#6CB8F5; --chili-hi:#BDE2FF; --chili-ink:#0B2238; --chili-soft:#1F3954;
+  --herb:#4FD1B0; --herb-soft:#173A33;
+  --sun:#FFD25E; --sun-soft:#3A3220; --sun-ink:#FFDF8A;
+  --coral:#FF9478; --coral-soft:#3D2622; --coral-ink:#FFB4A2;
+  --slate:#B3C0CD; --slate-soft:#253444; --ticket:#1A2836;
+  --shadow-sm:0 1px 2px rgba(0,0,0,.3); --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 28px rgba(0,0,0,.35); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#101B26; --bg-top:#16283A; --surface:#1A2836; --sunk:#213447; --line:#2A3D50;
+  --fg:#EEF4FA; --muted:#9FB0C2;
+  --chili:#6CB8F5; --chili-hi:#BDE2FF; --chili-ink:#0B2238; --chili-soft:#1F3954;
+  --herb:#4FD1B0; --herb-soft:#173A33;
+  --sun:#FFD25E; --sun-soft:#3A3220; --sun-ink:#FFDF8A;
+  --coral:#FF9478; --coral-soft:#3D2622; --coral-ink:#FFB4A2;
+  --slate:#B3C0CD; --slate-soft:#253444; --ticket:#1A2836;
+  --shadow-sm:0 1px 2px rgba(0,0,0,.3); --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 28px rgba(0,0,0,.35); color-scheme:dark}
+@property --a{syntax:"<angle>";inherits:false;initial-value:0deg}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{background:var(--bg) linear-gradient(180deg,var(--bg-top),var(--bg) 480px) no-repeat;color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.5;-webkit-tap-highlight-color:transparent}
+/* soft colour clouds behind everything */
+body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:radial-gradient(45% 28% at 105% 2%,color-mix(in srgb,var(--chili) 22%,transparent),transparent 70%),
+             radial-gradient(40% 24% at -8% 38%,color-mix(in srgb,var(--sun) 22%,transparent),transparent 70%),
+             radial-gradient(40% 22% at 108% 78%,color-mix(in srgb,var(--coral) 12%,transparent),transparent 70%)}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+a{color:inherit}
+:focus-visible{outline:3px solid var(--chili);outline-offset:2px}
+.wrap{max-width:560px;min-height:100%;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px calc(var(--tabs) + 44px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:22px}
+header{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.brand{font-family:var(--display);font-weight:800;font-size:22px;letter-spacing:-.01em;margin:0;display:flex;align-items:center;gap:8px}
+.brand span{color:var(--chili)}
+.brand .mark{width:22px;height:22px;border-radius:50%;flex:none;background:conic-gradient(var(--sun) 0 25%,var(--coral) 0 50%,var(--herb) 0 75%,var(--chili) 0);box-shadow:inset 0 0 0 4px var(--surface),var(--shadow-sm)}
+.status{font-size:11px;font-weight:600;color:var(--muted);background:var(--surface);box-shadow:var(--shadow-sm);border-radius:999px;padding:4px 10px;text-align:right}
+h2{font-family:var(--display);font-weight:800;font-size:32px;line-height:1.05;letter-spacing:-.015em;margin:0;text-wrap:balance}
+h3{font-family:var(--display);font-weight:700;font-size:20px;margin:0}
+.lede{color:var(--muted);margin:-12px 0 0;max-width:60ch}
+.view{display:flex;flex-direction:column;gap:22px}
+
+/* Spin hero */
+#view-pick{flex:1;justify-content:center}
+.hero{display:flex;flex-direction:column;align-items:center;gap:20px;text-align:center;padding-block:4px}
+.hero .q{font-family:var(--display);font-weight:900;font-size:clamp(34px,10vw,46px);line-height:1;letter-spacing:-.02em;margin:0;text-wrap:balance}
+.hero .q mark{display:inline-block;background:var(--sun);color:#16293B;padding:.02em .22em .08em;margin:0 .04em 0 .02em;border-radius:.28em;transform:rotate(-2.5deg);box-shadow:0 .08em 0 #E0A800;line-height:1.05}
+.step{width:100%;display:flex;flex-direction:column;align-items:center;gap:12px}
+.step-h{margin:0;display:flex;align-items:center;gap:10px;font-weight:700;font-size:16px;color:var(--fg)}
+.step-h em{font-style:normal;font-weight:500;color:var(--muted)}
+.num{width:30px;height:30px;border-radius:50%;color:#16293B;display:grid;place-items:center;font-family:var(--display);font-weight:900;font-size:16px;flex:none;box-shadow:var(--shadow-sm)}
+.num.n1{background:var(--sun)} .num.n2{background:var(--coral)} .num.n3{background:var(--chili)}
+.foods{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
+.food{border:0;background:var(--surface);box-shadow:var(--shadow-sm);border-radius:999px;padding:10px 15px;font-size:15px;font-weight:600;display:inline-flex;align-items:center;gap:7px;transition:transform .15s cubic-bezier(.3,1.6,.5,1),background .15s,box-shadow .15s}
+.food span{font-size:19px;line-height:1}
+.food:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
+.food:active{transform:scale(.92)}
+.food[aria-pressed="true"]{background:var(--chili);color:var(--chili-ink);transform:translateY(-3px) rotate(-2deg);box-shadow:0 8px 18px color-mix(in srgb,var(--chili) 40%,transparent)}
+#confetti{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:7}
+.seg{display:flex;background:var(--surface);box-shadow:var(--shadow-sm);border-radius:999px;padding:5px;gap:2px;flex-wrap:wrap;justify-content:center}
+.seg button{border:0;background:transparent;border-radius:999px;padding:9px 15px;font-size:14px;font-weight:600;color:var(--muted);transition:background .15s,color .15s}
+.seg button:hover{color:var(--fg)}
+.seg button[aria-pressed="true"]{background:var(--chili-soft);color:var(--chili-ink);font-weight:700}
+.crave{width:min(360px,100%);display:flex;flex-direction:column;gap:6px;text-align:left}
+.crave .box{position:relative}
+.crave input{width:100%;border:2px solid transparent;background:var(--surface);box-shadow:var(--shadow-sm);border-radius:999px;padding:12px 46px 12px 20px;font-size:16px;transition:border-color .15s}
+.crave input:focus{border-color:var(--chili);outline:none}
+.crave .clear{position:absolute;right:7px;top:50%;transform:translateY(-50%);border:0;background:var(--sunk);color:var(--muted);border-radius:50%;width:32px;height:32px;font-size:17px;line-height:1}
+
+/* The roulette-wheel button: sun/coral/mint/sky segments turn around a sky-blue centre */
+.go{position:relative;width:min(272px,70vw);aspect-ratio:1;max-width:100%;border-radius:50%;
+  border:14px solid transparent;
+  background:radial-gradient(circle at 34% 28%,var(--chili-hi),var(--chili) 64%) padding-box,
+             conic-gradient(from var(--a),var(--sun) 0 12.5%,var(--coral) 0 25%,var(--herb) 0 37.5%,var(--chili-hi) 0 50%,var(--sun) 0 62.5%,var(--coral) 0 75%,var(--herb) 0 87.5%,var(--chili-hi) 0) border-box;
+  box-shadow:inset 0 0 0 6px var(--surface),inset 0 10px 18px rgba(255,255,255,.35),0 18px 40px color-mix(in srgb,var(--chili) 38%,transparent),0 4px 0 color-mix(in srgb,var(--chili) 60%,var(--fg));
+  color:var(--chili-ink);font-family:var(--display);font-weight:900;font-size:clamp(40px,12vw,54px);letter-spacing:-.01em;text-transform:uppercase;
+  display:grid;place-items:center;transition:transform .12s;animation:turn 24s linear infinite}
+@keyframes turn{to{--a:360deg}}
+.go small{display:block;font-family:var(--body);font-size:13px;font-weight:600;letter-spacing:.01em;margin-top:4px;line-height:1.25;text-transform:none}
+.go small b{display:block;font-family:var(--display);font-weight:900;font-size:clamp(30px,8.5vw,38px);letter-spacing:-.02em;line-height:1;font-variant-numeric:tabular-nums}
+.go small i{font-style:normal;opacity:.8}
+.go:hover{transform:scale(1.02)}
+.go:active{transform:scale(.96)}
+.go:disabled{opacity:.5;cursor:default}
+.go.spin:disabled{opacity:1;animation:turn .6s linear infinite}
+.go.idle{animation:turn 24s linear infinite,breathe 2.8s ease-in-out infinite}
+@keyframes breathe{0%,100%{scale:1}50%{scale:1.035}}
+
+/* Ticket */
+.ticket{width:100%;text-align:left;background:var(--ticket);box-shadow:var(--shadow);border-radius:22px;padding:20px 20px 18px;display:flex;flex-direction:column;gap:10px;
+  -webkit-mask:radial-gradient(circle 9px at 0 50%,#0000 98%,#000) left/51% 100% no-repeat,radial-gradient(circle 9px at 100% 50%,#0000 98%,#000) right/51% 100% no-repeat;
+          mask:radial-gradient(circle 9px at 0 50%,#0000 98%,#000) left/51% 100% no-repeat,radial-gradient(circle 9px at 100% 50%,#0000 98%,#000) right/51% 100% no-repeat}
+.ticket .meta{font-family:var(--mono);font-size:12px;color:var(--muted);display:flex;justify-content:space-between;gap:8px;border-bottom:2px dashed var(--line);padding-bottom:10px;font-variant-numeric:tabular-nums}
+.ticket .dish{font-family:var(--display);font-weight:900;font-size:clamp(30px,9vw,42px);line-height:1;letter-spacing:-.02em;margin:2px 0 0;overflow-wrap:anywhere;text-wrap:balance}
+.ticket .where{margin:-2px 0 0;color:var(--muted);overflow-wrap:anywhere}
+.ticket .acts{display:flex;gap:8px;flex-wrap:wrap;border-top:2px dashed var(--line);padding-top:14px}
+.ticket.rolling .dish{opacity:.6;filter:blur(.5px)}
+.ticket.landed{animation:pop .5s cubic-bezier(.2,1.7,.4,1)}
+@keyframes pop{0%{transform:scale(.92) rotate(-1deg)}100%{transform:scale(1)}}
+.tag{align-self:flex-start;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:5px 10px;border-radius:999px;white-space:nowrap}
+.tag.fav{background:var(--coral-soft);color:var(--coral-ink)}
+.tag.try{background:var(--herb-soft);color:var(--herb)}
+.tag.tried{background:var(--sun-soft);color:var(--sun-ink)}
+.btn{border:0;background:var(--surface);box-shadow:var(--shadow-sm),inset 0 0 0 1.5px var(--line);border-radius:999px;padding:12px 18px;font-weight:700;font-size:15px;transition:transform .15s cubic-bezier(.3,1.6,.5,1),box-shadow .15s;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{transform:translateY(-2px)}
+.btn:active{transform:scale(.95)}
+.btn.herb{background:var(--herb);color:var(--surface);box-shadow:var(--shadow-sm)}
+.btn.go-green{background:#22D16B;color:#04331A;box-shadow:0 6px 18px -6px rgba(34,209,107,.75),inset 0 -3px 0 rgba(0,0,0,.12)}
+.btn.go-green:hover{filter:brightness(1.05)}
+.btn.confirm{width:100%;justify-content:center;margin-top:12px;padding:15px 18px;font-size:17px;font-family:var(--display)}
+.locked{margin-top:14px;border-radius:18px;padding:14px;background:color-mix(in srgb,#22D16B 14%,var(--surface));box-shadow:inset 0 0 0 2px color-mix(in srgb,#22D16B 45%,transparent)}
+.locked p{margin:0}.lk-h{font-family:var(--display);font-weight:800;font-size:19px}
+.lk-s{color:var(--muted);font-size:14px;margin:4px 0 10px!important}
+.lk-t{display:flex;align-items:center;gap:10px;font-weight:700;margin-bottom:10px}
+.lk-t input{font:inherit;font-weight:600;border:0;border-radius:12px;padding:8px 12px;background:var(--surface);color:var(--fg);box-shadow:inset 0 0 0 1.5px var(--line)}
+.lk-where{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:14px;margin-bottom:12px}.lk-where a{color:var(--fg);font-weight:700}
+.lk-cal{display:flex;flex-wrap:wrap;gap:8px}
+.gate{border:0;padding:0;border-radius:28px;width:min(380px,calc(100vw - 32px));background:var(--surface);color:var(--fg);box-shadow:0 30px 80px -20px rgba(14,42,69,.55)}
+.gate::backdrop{background:rgba(14,42,69,.45);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.gate[open]{animation:pop .45s cubic-bezier(.3,1.6,.5,1)}
+@keyframes pop{from{opacity:0;transform:translateY(24px) scale(.92)}to{opacity:1;transform:none}}
+.gate form{padding:26px 22px 18px;text-align:center;display:flex;flex-direction:column;gap:10px;background:radial-gradient(circle at 50% -20%,var(--chili-soft),transparent 60%)}
+.gate-wheel{font-size:46px;line-height:1;margin:0 auto;animation:wobble 3.2s ease-in-out infinite}
+.gate h2{margin:0;font-family:var(--display);font-weight:900;font-size:24px;line-height:1.15}
+.gate p{margin:0;color:var(--muted)}
+.gate input{font:inherit;font-size:17px;border:0;border-radius:999px;padding:14px 18px;background:var(--bg);color:var(--fg);box-shadow:inset 0 0 0 2px var(--line);text-align:center;margin-top:4px}
+.gate input:focus{outline:none;box-shadow:inset 0 0 0 2.5px var(--chili)}
+.gate .gate-err{color:var(--coral-ink,#B23A1E);font-weight:700;font-size:14px}
+.gate-go{justify-content:center;font-size:17px;padding:15px 18px;font-family:var(--display)}
+.gate-later{border:0;background:none;color:var(--muted);font:inherit;font-weight:600;text-decoration:underline;padding:4px;cursor:pointer}
+.gate .gate-fine{font-size:12px}
+.su-acts{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}
+.su-text{width:100%;min-height:90px;border:0;border-radius:14px;padding:10px 12px;margin-bottom:10px;font:13px/1.5 var(--mono,monospace);background:var(--surface);color:var(--fg);box-shadow:inset 0 0 0 1.5px var(--line)}
+.signups{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.signups li{background:var(--surface);border-radius:14px;padding:10px 14px;box-shadow:var(--shadow-sm);display:flex;justify-content:space-between;gap:10px;font-size:14px;overflow-wrap:anywhere}
+.signups small{color:var(--muted);white-space:nowrap}
+@media (prefers-reduced-motion:reduce){.gate[open],.gate-wheel{animation:none}}
+.btn.dark{background:var(--fg);color:var(--bg);box-shadow:var(--shadow-sm)}
+.btn.in{background:var(--sunk);box-shadow:none;color:var(--muted);cursor:default;transform:none}
+
+/* Lists */
+.list{display:flex;flex-direction:column;gap:10px;min-width:0}
+.list-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.list:nth-of-type(1) h3::before,.list:nth-of-type(2) h3::before,.list:nth-of-type(3) h3::before,.list:nth-of-type(4) h3::before{content:"";display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:8px;vertical-align:1px}
+.list:nth-of-type(1) h3::before{background:var(--coral)} .list:nth-of-type(2) h3::before{background:var(--herb)} .list:nth-of-type(3) h3::before{background:var(--sun)} .list:nth-of-type(4) h3::before{background:#22D16B}
+.count{font-family:var(--mono);font-size:12px;color:var(--muted);background:var(--surface);box-shadow:var(--shadow-sm);padding:2px 8px;border-radius:999px}
+.count:empty{display:none}
+.hint{margin:-6px 0 0;color:var(--muted);font-size:13px}
+form.add{display:flex;gap:8px}
+form.add input{flex:1;min-width:0;border:2px solid transparent;background:var(--surface);box-shadow:var(--shadow-sm);border-radius:999px;padding:11px 18px}
+form.add input:focus{border-color:var(--chili);outline:none}
+form.add button{border:0;border-radius:999px;padding:0 20px;font-weight:800;background:var(--chili);color:var(--chili-ink);box-shadow:var(--shadow-sm)}
+ul.items{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;border-radius:18px;background:var(--surface);box-shadow:var(--shadow);overflow:hidden}
+ul.items:empty{display:none}
+ul.items li{position:relative;border-top:1px solid var(--line);min-width:0;overflow:hidden}
+ul.items li:first-child{border-top:0}
+ul.items .bg{position:absolute;inset:0;background:var(--coral);color:#fff;display:flex;align-items:center;justify-content:flex-end;padding-right:20px;font-weight:800;font-size:14px}
+ul.items .fg{position:relative;background:var(--surface);display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;padding:11px 10px 11px 16px;touch-action:pan-y;user-select:none;-webkit-user-select:none}
+ul.items .fg.snap{transition:transform .2s ease}
+ul.items li.hit .fg{background:var(--chili-soft)}
+ul.items li.gone{transition:height .2s ease,opacity .2s;opacity:0}
+.nm.tap{border:0;background:none;padding:0;text-align:left;cursor:pointer;color:inherit}
+.swipe-tip{font-size:13px;color:var(--muted);margin:-8px 0 0;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.swipe-tip button{border:0;background:none;color:var(--chili-ink);font-weight:700;text-decoration:underline;font-size:13px;padding:0}
+.toast{position:fixed;left:50%;bottom:calc(var(--tabs) + 30px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);opacity:0;pointer-events:none;z-index:6;
+  background:var(--fg);color:var(--bg);border-radius:999px;padding:10px 12px 10px 18px;display:flex;gap:14px;align-items:center;font-size:14px;font-weight:600;max-width:calc(100% - 32px);transition:transform .25s cubic-bezier(.3,1.6,.5,1),opacity .2s;box-shadow:var(--shadow)}
+.toast.on{transform:translate(-50%,0);opacity:1;pointer-events:auto}
+.toast button{border:0;background:var(--sun);color:#16293B;border-radius:999px;font-weight:800;padding:5px 12px;text-transform:uppercase;letter-spacing:.04em;font-size:12px}
+.toast button[hidden]{display:none}
+.nm{flex:1 1 140px;min-width:0;display:flex;flex-direction:column}
+.nm b{font-weight:700;overflow-wrap:anywhere}
+.nm small{color:var(--muted);font-size:13px;overflow-wrap:anywhere}
+.ib{border:0;background:transparent;border-radius:999px;padding:7px 10px;font-size:13px;font-weight:700;color:var(--muted);white-space:nowrap;text-decoration:none}
+.ib:hover{background:var(--sunk);color:var(--fg)}
+.ib.ok{color:var(--herb);background:var(--herb-soft)}
+.ib.red{color:var(--coral-ink)}
+.acts-row{display:flex;gap:4px;flex-wrap:wrap}
+.rate{align-items:center}
+.rate-q{font-size:12px;font-weight:700;color:var(--muted);margin-right:2px}
+.rate .ib{background:var(--sunk)}
+.rate .ib.on{background:var(--chili);color:var(--chili-ink)}
+.rv-c{flex-basis:100%;display:flex;flex-direction:column;gap:4px}
+.rv-c input{border:1.5px solid var(--line);background:var(--bg);border-radius:12px;padding:9px 12px;font-size:14px;width:100%;user-select:text;-webkit-user-select:text}
+.rv-c input:focus{outline:none;border-color:var(--chili)}
+.rv-c small{color:var(--muted);font-size:12px}
+.crowd{font-size:13px;background:var(--sunk);border-radius:14px;padding:8px 12px;display:flex;flex-wrap:wrap;gap:2px 8px;align-items:baseline}
+.crowd b{font-weight:700}.crowd small{color:var(--muted)}
+.crowd q{flex-basis:100%;color:var(--fg);font-style:italic;overflow-wrap:anywhere}
+.crowd q::before{content:"“"}.crowd q::after{content:"”"}
+.rv-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(92px,1fr));gap:8px;margin-bottom:12px}
+.rv-stat{background:var(--surface);box-shadow:var(--shadow-sm);border-radius:14px;padding:10px 12px;display:flex;flex-direction:column}
+.rv-stat b{font-family:var(--display);font-weight:800;font-size:22px;line-height:1.1}.rv-stat span{font-size:12px;color:var(--muted)}
+.rv-h{margin:10px 0 2px;font-weight:700;font-size:14px}
+.signups q{font-style:italic;color:var(--muted)}
+.editor{flex-basis:100%;display:grid;gap:8px;padding:6px 6px 4px 0}
+.editor label{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:700;color:var(--muted)}
+.editor input,.editor select{border:1.5px solid var(--line);background:var(--bg);border-radius:12px;padding:10px 12px;width:100%}
+.editor .row{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.ideas{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.ideas span{font-size:12px;color:var(--muted);margin-right:2px}
+.idea{border:1.5px dashed color-mix(in srgb,var(--chili) 50%,var(--line));background:transparent;border-radius:999px;padding:6px 12px;font-size:13px;font-weight:600;color:var(--muted);transition:transform .15s}
+.idea:hover{border-style:solid;color:var(--fg);transform:translateY(-1px)}
+.empty-note{color:var(--muted);font-size:14px;margin:0;padding:14px 16px;border:2px dashed var(--line);border-radius:18px}
+
+/* Map */
+.near-all{background:linear-gradient(135deg,var(--chili-soft),var(--surface));box-shadow:var(--shadow);border-radius:22px;padding:18px;display:flex;flex-direction:column;gap:10px}
+.near-all p{margin:0;color:var(--muted);font-size:14px}
+.pins{display:grid;gap:10px}
+.pin{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;align-items:start;background:var(--surface);box-shadow:var(--shadow-sm);border-radius:18px;padding:14px 16px}
+.pin .dot{width:32px;height:32px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);grid-row:span 2;margin-top:4px;display:grid;place-items:center}
+.pin .dot i{transform:rotate(45deg);font-style:normal;font-family:var(--mono);font-size:11px;font-weight:500;color:#fff}
+.pin.fav .dot{background:var(--coral)}
+.pin.try .dot{background:var(--herb)}
+.pin .nm{flex:none}
+.pin .links{grid-column:2;display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.legend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:-1px;background:var(--c)}
+
+/* Explore */
+.filters{display:flex;flex-direction:column;gap:10px}
+.filters .seg{justify-content:flex-start;align-self:flex-start}
+.frow{display:flex;gap:8px}
+.frow select{flex:0 0 auto;max-width:42%;border:0;background:var(--surface);box-shadow:var(--shadow-sm);border-radius:999px;padding:0 14px;font-weight:600}
+.filters input{flex:1;min-width:0;border:2px solid transparent;background:var(--surface);box-shadow:var(--shadow-sm);border-radius:999px;padding:11px 18px}
+.filters input:focus{border-color:var(--chili);outline:none}
+.ecount{font-size:13px;color:var(--muted);margin:-8px 0 0;font-variant-numeric:tabular-nums}
+.cards{display:grid;gap:12px}
+.card{background:var(--surface);box-shadow:var(--shadow-sm);border-radius:20px;padding:16px;display:flex;flex-direction:column;gap:6px;min-width:0;transition:transform .15s,box-shadow .15s}
+.card:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
+.card .top{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.card .top b{font-family:var(--display);font-weight:800;font-size:19px;line-height:1.15;letter-spacing:-.01em;overflow-wrap:anywhere}
+.card .price{font-family:var(--mono);font-size:13px;font-weight:500;color:var(--herb);background:var(--herb-soft);padding:2px 8px;border-radius:999px;white-space:nowrap}
+.card .price s{color:color-mix(in srgb,var(--herb) 30%,transparent);text-decoration:none}
+.card .sub{font-size:13px;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 12px}
+.card .stars{color:var(--fg);font-weight:700;font-variant-numeric:tabular-nums}
+.card .stars::before{content:"★ ";color:var(--sun)}
+.card .addr{font-size:13px;color:var(--muted);overflow-wrap:anywhere}
+.card .links{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.src{font-size:12px;color:var(--muted);margin:0}
+.more{align-self:center}
+
+/* Floating pill tab bar */
+nav.tabs{position:fixed;left:max(12px,env(safe-area-inset-left,0px));right:max(12px,env(safe-area-inset-right,0px));bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:5}
+nav.tabs .in{max-width:520px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:4px;height:var(--tabs);padding:6px;border-radius:24px;
+  background:color-mix(in srgb,var(--surface) 88%,transparent);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:var(--shadow),inset 0 0 0 1px var(--line)}
+nav.tabs a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border-radius:18px;text-decoration:none;color:var(--muted);font-size:12px;font-weight:700;transition:background .15s,color .15s}
+nav.tabs a svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+nav.tabs a[aria-current="page"]{color:var(--chili-ink);background:var(--chili-soft)}
+.hero .q mark{cursor:pointer;animation:wobble 3.2s ease-in-out infinite;transform-origin:50% 60%;transition:filter .2s}
+.hero .q mark:hover{filter:brightness(1.06)}
+.hero .q mark:active{scale:.94}
+.hero .q mark:focus-visible{outline:3px solid var(--chili);outline-offset:4px}
+@keyframes wobble{0%,62%,100%{transform:rotate(-2.5deg) translateY(0)}68%{transform:rotate(4deg) translateY(-6px)}74%{transform:rotate(-6deg) translateY(-2px)}80%{transform:rotate(3deg) translateY(-4px)}86%{transform:rotate(-2.5deg) translateY(0)}}
+.go.hello{animation:hello .9s cubic-bezier(.3,1.6,.5,1)}
+@keyframes hello{0%{scale:1}35%{scale:1.1}60%{scale:.96}100%{scale:1}}
+.card .sub .truck{background:var(--sun);color:#16293B;font-weight:700;padding:1px 9px;border-radius:999px}
+@media (prefers-reduced-motion:reduce){.hero .q mark,.go.hello{animation:none}}
+@media (prefers-reduced-motion:reduce){.go,.go.idle,.go.spin:disabled,.ticket.landed,.food,.btn,.card{animation:none;transition:none}}
+</style>
+
+<main class="wrap">
+  <header>
+    <p class="brand"><i class="mark" aria-hidden="true"></i>Takeout <span>Roulette</span></p>
+    <div class="status" id="status">Saved on this device</div>
+  </header>
+
+  <!-- Takeout -->
+  <section class="view" id="view-pick" aria-label="Takeout">
+    <div class="hero">
+      <p class="q">What's for <mark id="dinner" role="button" tabindex="0" aria-label="Dinner: jump to the spin wheel">dinner</mark>?</p>
+      <div class="step">
+        <p class="step-h"><span class="num n1">1</span>Pick a food <em>(or skip it)</em></p>
+        <div class="foods" id="foods" role="group" aria-label="Food"></div>
+        <div class="crave">
+          <div class="box"><input id="crave" type="search" list="cuisineNames" placeholder="Or type any food…" autocomplete="off" enterkeyhint="go" aria-label="Type a food">
+          <button class="clear" type="button" id="craveClear" aria-label="Clear" hidden>×</button></div>
+        </div>
+      </div>
+      <div class="step">
+        <p class="step-h"><span class="num n2">2</span>Pick from where?</p>
+        <div class="seg" role="group" aria-label="Pick from">
+          <button type="button" data-pool="all" aria-pressed="true">Everywhere</button>
+          <button type="button" data-pool="both" aria-pressed="false">My lists</button>
+          <button type="button" data-pool="fav" aria-pressed="false">Favorites</button>
+        </div>
+      </div>
+      <p class="step-h"><span class="num n3">3</span>Press the big button!</p>
+      <datalist id="cuisineNames"></datalist>
+      <button class="go" id="go" type="button"><span>Spin!<small id="goSub">Pick for me</small></span></button>
+      <div class="ticket" id="ticket" aria-live="polite"></div>
+    </div>
+    <canvas id="confetti" aria-hidden="true"></canvas>
+  </section>
+
+  <!-- Lists -->
+  <section class="view" id="view-lists" aria-label="Lists" hidden>
+    <h2>Your lists</h2>
+    <p class="lede">Add foods or Hamilton restaurants. Tap any item to edit it.</p>
+    <p class="swipe-tip" id="swipeTip">← Swipe an item left to delete it. <button type="button" data-tipok="1">Got it</button></p>
+
+    <div class="list">
+      <div class="list-head"><h3>Favorites</h3><span class="count" id="count-fav"></span></div>
+      <p class="hint">Your reliable go-tos.</p>
+      <form class="add" data-list="fav"><input id="add-fav" type="text" placeholder="Add a food or restaurant" maxlength="60" autocomplete="off" list="placeNames" aria-label="Add a favorite"><button type="submit">Add</button></form>
+      <ul class="items" id="items-fav"></ul>
+      <div class="ideas" id="ideas-fav"></div>
+    </div>
+
+    <div class="list">
+      <div class="list-head"><h3>Want to try</h3><span class="count" id="count-try"></span></div>
+      <p class="hint">Places and foods you haven't tried yet. After you try one, mark it Loved it or Not for me.</p>
+      <form class="add" data-list="try"><input id="add-try" type="text" placeholder="Add a food or restaurant" maxlength="60" autocomplete="off" list="placeNames" aria-label="Add something you want to try"><button type="submit">Add</button></form>
+      <ul class="items" id="items-try"></ul>
+      <div class="ideas" id="ideas-try"></div>
+    </div>
+
+    <div class="list">
+      <div class="list-head"><h3>Tried, not for me</h3><span class="count" id="count-tried"></span></div>
+      <p class="hint">Kept here so you remember. Takeout never picks these.</p>
+      <ul class="items" id="items-tried"></ul>
+      <p class="empty-note" id="empty-tried">Nothing here yet.</p>
+    </div>
+
+    <div class="list">
+      <div class="list-head"><h3>Places I've been</h3><span class="count" id="count-been"></span></div>
+      <p class="hint">Every spin you confirm lands here with the date, so you can keep track.</p>
+      <ul class="items" id="items-been"></ul>
+      <p class="empty-note" id="empty-been">Nothing yet. Spin, then press the green Confirm button.</p>
+    </div>
+
+  </section>
+
+  <!-- Explore -->
+  <section class="view" id="view-explore" aria-label="Explore Hamilton" hidden>
+    <h2>Explore Hamilton</h2>
+    <p class="lede">Local, independent restaurants and takeout spots across Hamilton, Dundas, Ancaster, Stoney Creek, Waterdown and Binbrook. No big chains. Add any of them to your lists and Takeout can pick them.</p>
+    <div class="filters">
+      <div class="frow"><input id="q" type="search" placeholder="Search by name or food, e.g. shawarma" autocomplete="off" aria-label="Search places">
+      <select id="area" aria-label="Area"><option value="">All areas</option></select></div>
+      <div class="seg" role="group" aria-label="Type">
+        <button type="button" data-kind="all" aria-pressed="true">All</button>
+        <button type="button" data-kind="restaurant" aria-pressed="false">Restaurants</button>
+        <button type="button" data-kind="fast" aria-pressed="false">Quick takeout</button>
+      </div>
+      <div class="seg" role="group" aria-label="Price">
+        <button type="button" data-price="0" aria-pressed="true">Any price</button>
+        <button type="button" data-price="1" aria-pressed="false">$</button>
+        <button type="button" data-price="2" aria-pressed="false">$$</button>
+        <button type="button" data-price="3" aria-pressed="false">$$$</button>
+      </div>
+    </div>
+    <p class="ecount" id="ecount"></p>
+    <div class="cards" id="cards"></div>
+    <p class="src">Ratings are Google star ratings and review counts, collected in October 2026, so they may have changed a little since. Prices marked “est.” are my estimate from the menu style; the rest come from restaurant listings.</p>
+  </section>
+
+  <!-- Near me -->
+  <section class="view" id="view-map" aria-label="Near me" hidden>
+    <h2>Near me</h2>
+    <p class="lede">Each button opens Google Maps, which uses your location to show the closest spot and how far it is.</p>
+    <div class="near-all">
+      <b>Not sure where to go?</b>
+      <p>See every takeout place around you right now.</p>
+      <div><a class="btn dark" id="allNear" href="https://www.google.com/maps/search/?api=1&amp;query=takeout%20near%20me" target="_blank" rel="noopener">Takeout near me ↗</a></div>
+    </div>
+    <div class="legend"><span style="--c:var(--chili)">Favorite</span><span style="--c:var(--herb)">Want to try</span></div>
+    <div class="pins" id="pins"></div>
+  </section>
+</main>
+
+<dialog class="gate" id="gate" aria-labelledby="gateH">
+  <form id="gateForm" novalidate>
+    <div class="gate-wheel" aria-hidden="true">🎰</div>
+    <h2 id="gateH">One quick thing before you spin!</h2>
+    <p>Pop in your email to unlock the <b>Spin</b> button. You only do this once.</p>
+    <input id="gateEmail" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" aria-label="Your email" required>
+    <p class="gate-err" id="gateErr" role="alert" hidden>That doesn't look like an email yet. Try again?</p>
+    <button class="btn go-green gate-go" type="submit">Unlock Spin 🎉</button>
+    <button class="gate-later" type="button" id="gateLater">Not now</button>
+    <p class="gate-fine">Only the owner of this app can see your email.</p>
+  </form>
+</dialog>
+<div class="toast" id="toast" role="status" aria-live="polite"><span id="toastMsg"></span><button type="button" id="toastUndo">Undo</button></div>
+<datalist id="placeNames"></datalist>
+
+<nav class="tabs" aria-label="Sections">
+  <div class="in">
+    <a href="#pick" data-view="pick"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v4.5l3 2"/></svg>Spin</a>
+    <a href="#lists" data-view="lists"><svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/></svg>My lists</a>
+    <a href="#explore" data-view="explore"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></svg>Explore</a>
+    <a href="#map" data-view="map"><svg viewBox="0 0 24 24"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></svg>Map</a>
+  </div>
+</nav>
+
+<script>
+(() => {
+const $ = s => document.querySelector(s);
+const LS = "takeout-roulette-v1";
+const LISTS = ["fav","try","tried"];
+const IDEAS = {
+  fav: ["Pizza","Burgers","Tacos","Sushi","Chinese","Thai curry","Fried chicken","Burritos"],
+  try: ["Ethiopian","Pho","Korean BBQ","Greek gyros","Indian thali","Ramen","Poke bowl","Lebanese"]
+};
+const S = { items: [], places: [], placesState: "loading", pool: "all", craving: "", pick: null, order: 0, store: null, view: "pick", editing: null, f: {kind:"all", price:0, q:"", area:""} };
+const VIEWS = ["pick","lists","explore","map"];
+
+/* ---------- Storage: local first, account (db) when available ---------- */
+const local = {
+  load(){ try { return JSON.parse(localStorage.getItem(LS)) || {}; } catch { return {}; } },
+  save(){ try { localStorage.setItem(LS, JSON.stringify({items:S.items, pool:S.pool, poolV:2, order:S.order})); } catch {} }
+};
+const localStore = { put(){ local.save(); return Promise.resolve(); }, del(){ local.save(); return Promise.resolve(); }, kind:"local" };
+function setStatus(){ $("#status").textContent = "Saved on this device"; }
+
+/* ---------- Actions ---------- */
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+const norm = s => (s||"").trim().toLowerCase();
+const clean = s => (s||"").trim().replace(/\s+/g," ");
+function add(list, name){
+  name = clean(name);
+  if (!name) return;
+  if (listed().some(i => norm(i.name) === norm(name))) { flash(name); return; }
+  const pl = S.places.find(p => norm(p.name) === norm(name));
+  if (pl){ addPlace(pl.id, list); return; }
+  const it = {id: uid(), name, place: "", list, addedAt: new Date().toISOString()};
+  S.items.push(it); render(); S.store.put(it).catch(()=>{});
+  toast(`Added to ${LABEL[list]}`);
+}
+function update(id, patch){
+  const it = S.items.find(i => i.id === id); if (!it) return;
+  Object.assign(it, patch);
+  if (S.pick && S.pick.itemId === id && patch.list) S.pick = {...S.pick, list: patch.list};
+  render(); S.store.put(it).catch(()=>{});
+}
+function remove(id){
+  const it = S.items.find(i => i.id === id); if (!it) return;
+  S.items = S.items.filter(i => i.id !== id);
+  if (S.pick && S.pick.itemId === id) S.pick = null;
+  render(); S.store.del(id).catch(()=>{});
+  toast(`Deleted ${it.name}`, () => { if (!S.items.some(i => i.id === it.id)){ S.items.push(it); render(); S.store.put(it).catch(()=>{}); } });
+}
+function move(id, list, extra){
+  const it = S.items.find(i => i.id === id); if (!it) return;
+  const from = it.list;
+  update(id, {list, ...extra});
+  toast(`Moved ${it.name} to ${LABEL[list]}`, () => update(id, {list: from}));
+}
+const tried = (id, loved) => move(id, loved ? "fav" : "tried", {triedAt: new Date().toISOString()});
+function addPlace(pid, list){
+  const p = S.places.find(x => x.id === pid); if (!p) return;
+  const have = listed().find(i => i.placeId === pid || norm(i.name) === norm(p.name));
+  if (have){ if (have.list !== list) move(have.id, list); else toast(`${p.name} is already in ${LABEL[list]}`); return; }
+  const it = {id: uid(), name: p.name, place: "", address: p.address, placeId: pid, list, addedAt: new Date().toISOString()};
+  S.items.push(it); render(); S.store.put(it).catch(()=>{});
+  toast(`Added ${p.name} to ${LABEL[list]}`, () => remove(it.id));
+}
+/* ---------- Confirm tonight's pick: calendar + "Places I've been" ---------- */
+const pad2 = n => String(n).padStart(2, "0");
+function defaultTime(){
+  const d = new Date(); d.setMinutes(d.getMinutes() + 45);
+  let h = d.getHours(), m = d.getMinutes() < 30 ? 30 : 0; if (m === 0) h += 1;
+  if (h < 17) { h = 18; m = 0; } if (h > 22) { h = 22; m = 0; }
+  return `${pad2(h)}:${pad2(m)}`;
+}
+function whenFrom(t){ const [h, m] = (t || "18:00").split(":").map(Number); const d = new Date(); d.setHours(h || 0, m || 0, 0, 0); return d; }
+const stamp = d => `${d.getFullYear()}${pad2(d.getMonth()+1)}${pad2(d.getDate())}T${pad2(d.getHours())}${pad2(d.getMinutes())}00`;
+const isoLocal = d => { const o = -d.getTimezoneOffset(), sg = o >= 0 ? "+" : "-", a = Math.abs(o); return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}:00${sg}${pad2(Math.floor(a/60))}:${pad2(a%60)}`; };
+function calLinks(p, t){
+  const pl = placeOf(p), start = whenFrom(t), end = new Date(start.getTime() + 90*60000);
+  const title = `Dinner at ${p.name}`, where = p.address || p.place || "";
+  const lines = [`Tonight's pick: ${p.name}`];
+  if (where) lines.push(`Address: ${where}`);
+  if (pl) lines.push(`${pl.rating == null ? "New spot" : "★ " + pl.rating.toFixed(1) + " on Google"} · ${"$".repeat(pl.price)} · ${pl.cuisine}`);
+  if (truckUrl(pl)) lines.push(`Food truck, check today's spot: ${truckUrl(pl)}`);
+  lines.push(`Map: ${mapsUrl(p)}`, "", "Picked with Takeout Roulette");
+  const body = lines.join("\n");
+  let tz = ""; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch {}
+  const g = "https://calendar.google.com/calendar/render?" + new URLSearchParams({action:"TEMPLATE", text:title, dates:`${stamp(start)}/${stamp(end)}`, details:body, location:where, ...(tz ? {ctz:tz} : {})});
+  const o = "https://outlook.live.com/calendar/0/deeplink/compose?" + new URLSearchParams({path:"/calendar/action/compose", rru:"addevent", subject:title, startdt:isoLocal(start), enddt:isoLocal(end), location:where, body});
+  return {g, o};
+}
+function confirmPick(){
+  const p = S.pick; if (!p || p.confirmed) return;
+  const it = {id: uid(), name: p.name, place: "", address: p.address || p.place || "", ...(p.placeId ? {placeId: p.placeId} : {}), list: "been", visitedAt: new Date().toISOString(), addedAt: new Date().toISOString()};
+  S.items.push(it); S.pick = {...p, confirmed: it.id, time: defaultTime()};
+  render(); S.store.put(it).catch(()=>{});
+  if (!calm()) confetti();
+  setTimeout(() => $(".locked")?.scrollIntoView({behavior: calm() ? "auto" : "smooth", block: "center"}), 60);
+  toast(`Saved to Places I've been`, () => { S.pick = S.pick && S.pick.confirmed === it.id ? {...S.pick, confirmed: null} : S.pick; remove(it.id); });
+}
+function beenRow(i){
+  const d = new Date(i.visitedAt || i.addedAt), when = isNaN(d) ? "" : d.toLocaleDateString(undefined, {weekday:"short", month:"short", day:"numeric"});
+  const rate = `<div class="acts-row rate" role="group" aria-label="How was ${esc(i.name)}?"><span class="rate-q">${i.verdict ? "Your rating:" : "How was it?"}</span>${RATES.map(([v, label]) =>
+    `<button class="ib${i.verdict === v ? " on" : ""}" type="button" data-rate="${i.id}|${v}" aria-pressed="${i.verdict === v}">${label}</button>`).join("")}</div>`;
+  const cmt = i.verdict ? `<div class="rv-c"><input type="text" data-cmt="${i.id}" value="${esc(i.comment || "")}" maxlength="200" placeholder="Add a comment for others (optional)" aria-label="Comment about ${esc(i.name)}" enterkeyhint="done">${i.placeId ? `<small>${i.comment ? "Shared" : "Your rating is shared"} with everyone, without your name.</small>` : ""}</div>` : "";
+  return `<li data-name="${esc(i.name)}" data-id="${i.id}"><div class="bg" aria-hidden="true">Delete</div><div class="fg"><span class="nm"><b>${esc(i.name)}</b><small>${esc(when)}${i.address ? " · " + esc(i.address) : ""}</small></span>${rate}${cmt}</div></li>`;
+}
+const RATES = [["loved","😍 Loved it"],["ok","🙂 It was OK"],["nope","👎 Not for me"]];
+function rateVisit(id, v){
+  const it = S.items.find(i => i.id === id); if (!it) return;
+  if (it.verdict === v){ update(id, {verdict: null}); REV.sync(it.placeId); return; }
+  update(id, {verdict: v});
+  if (!it.placeId) return;
+  REV.sync(it.placeId);
+  const have = listed().find(x => x.placeId === it.placeId);
+  if (v === "loved" && (!have || have.list !== "fav")) addPlace(it.placeId, "fav");
+  else if (v === "nope" && (!have || have.list !== "tried")) addPlace(it.placeId, "tried");
+}
+const listed = () => S.items.filter(i => i.list !== "been");
+/* ---------- Public reviews: each diner's latest verdict + comment per place, shared with everyone ---------- */
+const VERDICT = {loved:"😍 Loved it", ok:"🙂 It was OK", nope:"👎 Not for me"};
+const cleanComment = s => clean(s).slice(0, 200);
+// My current review for a place = my latest rated visit there
+function myReview(pid){
+  const v = S.items.filter(i => i.list === "been" && i.placeId === pid && i.verdict).sort((a,b) => (b.visitedAt||"").localeCompare(a.visitedAt||""))[0];
+  const pl = S.places.find(p => p.id === pid);
+  return v ? {verdict: v.verdict, comment: cleanComment(v.comment), at: v.visitedAt || new Date().toISOString(), name: pl ? pl.name : v.name} : null;
+}
+// rows: [{placeId, name, verdict, comment, at}] from everyone -> per-place summary
+function setReviews(rows){
+  S.reviewRows = rows.filter(r => r && r.placeId && VERDICT[r.verdict]);
+  const m = new Map();
+  for (const r of S.reviewRows){
+    const s = m.get(r.placeId) || {loved:0, ok:0, nope:0, n:0, comments:[]};
+    s[r.verdict]++; s.n++; if (r.comment) s.comments.push({c: r.comment, v: r.verdict, at: r.at || ""});
+    m.set(r.placeId, s);
+  }
+  m.forEach(s => s.comments.sort((a,b) => b.at.localeCompare(a.at)));
+  S.reviews = m; render(); renderReviewAdmin();
+}
+function crowd(pid, max){
+  const s = S.reviews && S.reviews.get(pid); if (!s) return "";
+  const parts = [["loved","😍"],["ok","🙂"],["nope","👎"]].filter(([k]) => s[k]).map(([k, e]) => `${e} ${s[k]}`).join(" · ");
+  const quotes = s.comments.slice(0, max).map(c => `<q>${esc(c.c)}</q>`).join("");
+  return `<div class="crowd"><b>Takeout Roulette diners</b> <span>${parts}</span> <small>(${s.n} rating${s.n === 1 ? "" : "s"})</small>${quotes}</div>`;
+}
+// Owner-only reviews & stats, separate from the email sign-ups
+function renderReviewAdmin(){
+  const box = $("#reviewsBox"); if (!box || box.hidden) return;
+  const rows = S.reviewRows || [];
+  const tot = {loved:0, ok:0, nope:0}; rows.forEach(r => tot[r.verdict]++);
+  const by = [...(S.reviews || new Map()).entries()].map(([pid, s]) => ({pid, s, name: (S.places.find(p => p.id === pid) || rows.find(r => r.placeId === pid) || {}).name || pid, score: (s.loved - s.nope) / s.n}));
+  const top = [...by].sort((a,b) => b.s.loved - a.s.loved || b.score - a.score).slice(0, 5).filter(x => x.s.loved);
+  const low = [...by].sort((a,b) => b.s.nope - a.s.nope || a.score - b.score).slice(0, 5).filter(x => x.s.nope);
+  const pct = k => rows.length ? Math.round(tot[k] * 100 / rows.length) + "%" : "0%";
+  $("#count-reviews").textContent = rows.length + (rows.length === 1 ? " rating" : " ratings");
+  $("#rvCsv").disabled = !rows.length;
+  $("#rvStats").innerHTML = `<div class="rv-stat"><b>${rows.length}</b><span>ratings</span></div><div class="rv-stat"><b>${by.length}</b><span>places rated</span></div><div class="rv-stat"><b>${pct("loved")}</b><span>😍 loved</span></div><div class="rv-stat"><b>${pct("ok")}</b><span>🙂 OK</span></div><div class="rv-stat"><b>${pct("nope")}</b><span>👎 not for me</span></div>`;
+  const li = x => `<li><span>${esc(x.name)}</span><small>😍 ${x.s.loved} · 🙂 ${x.s.ok} · 👎 ${x.s.nope}</small></li>`;
+  $("#rvTop").innerHTML = top.length ? top.map(li).join("") : "<li><span>No ratings yet.</span></li>";
+  $("#rvLow").innerHTML = low.length ? low.map(li).join("") : "<li><span>Nothing yet.</span></li>";
+  const recent = [...rows].sort((a,b) => (b.at||"").localeCompare(a.at||"")).slice(0, 50);
+  $("#rvAll").innerHTML = recent.length ? recent.map(r => { const d = new Date(r.at); return `<li><span><b>${esc(r.name || r.placeId)}</b> ${VERDICT[r.verdict]}${r.comment ? `<br><q>${esc(r.comment)}</q>` : ""}</span><small>${isNaN(d) ? "" : d.toLocaleDateString(undefined,{month:"short",day:"numeric"})}</small></li>`; }).join("") : "<li><span>No reviews yet.</span></li>";
+}
+function reviewsCsv(){
+  const rows = [...(S.reviewRows || [])].sort((a,b) => (b.at||"").localeCompare(a.at||""));
+  return "restaurant,place_id,rating,comment,date\n" + rows.map(r => [r.name || "", r.placeId, VERDICT[r.verdict].replace(/^\S+\s/, ""), r.comment || "", r.at || ""].map(csvCell).join(",")).join("\n") + "\n";
+}
+/* REVIEWS-STORE */
+const REV = {
+  anon: (() => { try { let a = localStorage.getItem("takeout-anon"); if (!a){ a = (uid() + uid()).replace(/[^a-z0-9]/g, ""); localStorage.setItem("takeout-anon", a); } return a; } catch { return ""; } })(),
+  sync(pid){
+    if (!pid || !this.anon) return;
+    fetch("/api/review", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({anon: this.anon, placeId: pid, review: myReview(pid)})})
+      .then(() => this.load()).catch(() => {});
+  },
+  seq: 0,
+  load(){ const n = ++this.seq; fetch("/api/reviews", {cache: "no-store"}).then(r => r.ok ? r.json() : Promise.reject()).then(o => { if (n === this.seq) setReviews(o.rows || []); }).catch(() => {}); },
+  start(){ this.load(); }
+};
+/* /REVIEWS-STORE */
+function poolItems(){ return listed().filter(i => i.list !== "tried" && (S.pool === "both" || i.list === S.pool)); }
+// A food on your list ("Pizza") matches places whose name or cuisine mentions it
+const stem = w => w.toLowerCase().replace(/(es|s)$/,"");
+function matchPlaces(food){
+  const words = food.split(/[^A-Za-z]+/).filter(w => w.length > 2).map(stem);
+  return S.places.filter(p => { const hay = (p.name + " " + p.cuisine).toLowerCase(); return words.some(w => hay.includes(w)); });
+}
+// Everything Takeout can land on: always a restaurant when the Hamilton list is loaded
+const FOODS = [
+  ["Any food","", "✨"], ["Pizza","pizza","🍕"], ["Burgers","burger","🍔"], ["Shawarma","shawarma middle eastern lebanese syrian","🥙"],
+  ["Sushi","sushi japanese","🍣"], ["Mexican","mexican taco burrito tex","🌮"], ["Chinese","chinese szechuan","🥡"],
+  ["Italian","italian pasta","🍝"], ["Fish & chips","fish seafood","🐟"], ["Breakfast","breakfast diner brunch","🥞"],
+  ["Thai","thai","🍜"], ["Indian","indian nepalese","🍛"], ["BBQ","barbecue bbq rotisserie","🍗"]
+];
+function renderFoods(){
+  const typed = S.craving.trim() && !FOODS.some(f => f[1] === S.craving);
+  $("#foods").innerHTML = FOODS.map(([label, q, icon]) => `<button type="button" class="food" data-food="${esc(q)}" aria-pressed="${!typed && S.craving === q}"><span aria-hidden="true">${icon}</span>${esc(label)}</button>`).join("");
+}
+function candidates(){
+  const all = candidatesAll(), c = S.craving.trim();
+  if (!c) return all;
+  const words = c.split(/[^A-Za-z]+/).filter(w => w.length > 2).map(stem);
+  if (!words.length) return all;
+  return all.filter(x => { const pl = placeOf(x); const hay = ((x.name || "") + " " + (pl ? pl.cuisine : "")).toLowerCase(); return words.some(w => hay.includes(w)); });
+}
+function candidatesAll(){
+  if (!S.places.length) return poolItems().map(i => ({key: i.id, name: i.name, address: i.address, place: i.place, list: i.list, itemId: i.id}));
+  const tried = new Set(S.items.filter(i => i.list === "tried" && i.placeId).map(i => i.placeId));
+  const out = new Map();
+  const put = (pl, list, itemId, via) => { if (!tried.has(pl.id) && !out.has(pl.id)) out.set(pl.id, {key: pl.id, name: pl.name, address: pl.address, placeId: pl.id, list, itemId, via}); };
+  if (S.pool === "all"){
+    const mine = new Map(listed().filter(i => i.placeId).map(i => [i.placeId, i]));
+    S.places.forEach(pl => { const m = mine.get(pl.id); put(pl, m ? m.list : "all", m?.id); });
+  } else {
+    poolItems().filter(i => i.placeId).forEach(i => { const pl = S.places.find(x => x.id === i.placeId); if (pl) put(pl, i.list, i.id); });
+    poolItems().filter(i => !i.placeId).forEach(i => matchPlaces(i.name).forEach(pl => put(pl, i.list, null, i.name)));
+  }
+  return [...out.values()];
+}
+const calm = () => window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+/* ---------- Email wall before the first spin ---------- */
+const GATE = {ok: false};
+const emailOk = v => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v);
+function openGate(){
+  const d = $("#gate"); $("#gateErr").hidden = true;
+  if (d.showModal){ if (!d.open) d.showModal(); } else d.setAttribute("open", "");
+  setTimeout(() => $("#gateEmail").focus(), 50);
+}
+function closeGate(){ const d = $("#gate"); if (d.close && d.open) d.close(); else d.removeAttribute("open"); }
+$("#gateForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const email = $("#gateEmail").value.trim().toLowerCase();
+  if (!emailOk(email)){ $("#gateErr").hidden = false; $("#gateEmail").focus(); return; }
+  GATE.ok = true; prefs.set("gateEmail", email);
+  fetch("/api/signup", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({email})}).catch(() => {});
+  closeGate(); toast("Unlocked! Let's spin 🎉"); setTimeout(spin, 250);
+});
+$("#gateLater").addEventListener("click", closeGate);
+const csvCell = v => /[",\n]/.test(v) ? `"${String(v).replace(/"/g, '""')}"` : String(v);
+let spinning = false;
+function spin(){
+  if (spinning) return;
+  if (!GATE.ok){ openGate(); return; }
+  const pool = candidates(); if (!pool.length) return;
+  const choices = pool.length > 1 && S.pick ? pool.filter(c => c.key !== S.pick.key) : pool;
+  const it = choices[Math.floor(Math.random() * choices.length)];
+  const g = $("#go"); g.classList.remove("spin"); void g.offsetWidth; g.classList.add("spin");
+  const land = () => {
+    spinning = false; $("#go").disabled = false;
+    S.order += 1; S.pick = {...it, at: new Date()};
+    local.save(); render();
+    const t = $("#ticket"); t.classList.remove("landed"); void t.offsetWidth; t.classList.add("landed");
+    if (!calm()) confetti();
+  };
+  if (calm() || pool.length < 2){ land(); return; }
+  // Shuffle names on the ticket like a slot machine, slowing down before it lands
+  spinning = true; $("#go").disabled = true;
+  const t = $("#ticket");
+  t.classList.add("rolling");
+  t.innerHTML = `<div class="meta"><span>ORDER #${String(S.order + 1).padStart(3,"0")}</span><span>Picking…</span></div><span class="tag tried">Spinning…</span><p class="dish" id="roll"></p>`;
+  let n = 0, delay = 55;
+  const tick = () => {
+    $("#roll").textContent = pool[Math.floor(Math.random() * pool.length)].name;
+    n++; delay *= 1.12;
+    if (n < 16) setTimeout(tick, delay); else { t.classList.remove("rolling"); land(); }
+  };
+  tick();
+  t.scrollIntoView({block: "nearest", behavior: "smooth"});
+}
+function confetti(){
+  const c = $("#confetti"), ctx = c.getContext && c.getContext("2d"); if (!ctx) return;
+  const dpr = window.devicePixelRatio || 1;
+  c.width = innerWidth * dpr; c.height = innerHeight * dpr; ctx.scale(dpr, dpr);
+  const cs = getComputedStyle(document.documentElement);
+  const cols = ["--chili","--chili-hi","--herb","--fg","--chili-soft"].map(v => cs.getPropertyValue(v).trim() || "#6FA3D0");
+  const b = $("#go").getBoundingClientRect(), ox = b.left + b.width / 2, oy = b.top + b.height / 2;
+  const bits = Array.from({length: 90}, () => ({x: ox, y: oy, vx: (Math.random() - .5) * 13, vy: -Math.random() * 13 - 4, r: Math.random() * Math.PI, vr: (Math.random() - .5) * .4, w: 6 + Math.random() * 6, h: 4 + Math.random() * 4, c: cols[Math.floor(Math.random() * cols.length)]}));
+  let f = 0;
+  const step = () => {
+    ctx.clearRect(0, 0, innerWidth, innerHeight);
+    bits.forEach(p => { p.x += p.vx; p.y += p.vy; p.vy += .45; p.vx *= .985; p.r += p.vr;
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.r); ctx.fillStyle = p.c; ctx.globalAlpha = Math.max(0, 1 - f / 80); ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h); ctx.restore(); });
+    if (++f < 80) requestAnimationFrame(step); else ctx.clearRect(0, 0, innerWidth, innerHeight);
+  };
+  requestAnimationFrame(step);
+}
+function flash(name){
+  const li = [...document.querySelectorAll("ul.items li")].find(l => norm(l.dataset.name) === norm(name));
+  if (li){ li.classList.add("hit"); setTimeout(()=>li.classList.remove("hit"), 900); }
+}
+// Google Maps search uses the viewer's own location, so "near me" lands on the closest match
+const truckUrl = pl => pl && typeof pl.truck === "string" && /^https:\/\//.test(pl.truck) ? pl.truck : "";
+const mapsUrl = it => "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(it.address ? it.name + ", " + it.address : (it.place ? it.place : it.name + " restaurant") + " near me");
+const where = it => it.address || it.place || "Any " + it.name + " place";
+const dollars = p => p ? `${"$".repeat(p.price)}<s>${"$".repeat(4 - p.price)}</s>${p.priceSource === "est" ? " est." : ""}` : "";
+// Town from the address, e.g. "16 Sydenham St, Dundas, ON ..." -> Dundas
+const areaOf = p => { const m = (p.address || "").match(/,\s*([^,]+?),\s*ON\b/); if (!m) return "Hamilton"; const t = m[1].match(/\(([^)]+)\)/); return t ? t[1] : m[1].trim(); };
+const placeOf = it => it.placeId ? S.places.find(p => p.id === it.placeId) : null;
+
+/* ---------- Render ---------- */
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const LABEL = {fav:"Favorites", try:"Want to try", tried:"Tried, not for me"};
+function itemRow(i){
+  const sub = (i.address || i.place) ? `<small>${esc(i.address || i.place)}</small>` : "";
+  const ed = S.editing === i.id ? `<div class="editor">
+      <label>Food<input type="text" id="ed-name" value="${esc(i.name)}" maxlength="60"></label>
+      <label>Restaurant (optional)<input type="text" id="ed-place" value="${esc(i.place||"")}" maxlength="80" placeholder="e.g. Joe's Pizza on Main St"></label>
+      <label>List<select id="ed-list">${LISTS.map(l => `<option value="${l}"${l===i.list?" selected":""}>${LABEL[l]}</option>`).join("")}</select></label>
+      <div class="row"><button class="ib red" type="button" data-remove="${i.id}">Delete</button><button class="btn" type="button" data-cancel="1">Cancel</button><button class="btn dark" type="button" data-save="${i.id}">Save</button></div>
+    </div>` : "";
+  const acts = S.editing === i.id ? "" : `<div class="acts-row">${
+      i.list === "try" ? `<button class="ib ok" type="button" data-loved="${i.id}">Loved it</button><button class="ib" type="button" data-meh="${i.id}">Not for me</button>` : ""
+    }${i.list === "tried" ? `<button class="ib" type="button" data-retry="${i.id}">Give it another go</button>` : ""
+    }</div>`;
+  const nm = S.editing === i.id ? `<span class="nm"><b>${esc(i.name)}</b>${sub}</span>` : `<button type="button" class="nm tap" data-edit="${i.id}" aria-label="Edit ${esc(i.name)}"><b>${esc(i.name)}</b>${sub}</button>`;
+  return `<li data-name="${esc(i.name)}" data-id="${i.id}"${S.pick && S.pick.itemId===i.id ? ' class="hit"' : ""}><div class="bg" aria-hidden="true">Delete</div><div class="fg">${nm}${acts}${ed}</div></li>`;
+}
+/* ---------- Toast with optional Undo ---------- */
+let toastTimer = null, undoFn = null;
+function toast(msg, undo){
+  $("#toastMsg").textContent = msg;
+  undoFn = undo || null; $("#toastUndo").hidden = !undo;
+  $("#toast").classList.add("on");
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { $("#toast").classList.remove("on"); undoFn = null; }, undo ? 5000 : 2200);
+}
+$("#toastUndo").addEventListener("click", () => { const f = undoFn; undoFn = null; $("#toast").classList.remove("on"); f && f(); });
+
+/* ---------- Swipe left to delete ---------- */
+const prefs = { get(k){ try { return localStorage.getItem("takeout-pref-" + k); } catch { return null; } }, set(k, v){ try { localStorage.setItem("takeout-pref-" + k, v); } catch {} } };
+function bindSwipe(fg){
+  let x0 = 0, y0 = 0, dx = 0, mode = null, pid = null;
+  fg.addEventListener("pointerdown", e => {
+    if (e.button > 0 || e.target.closest("input,select,textarea") || fg.querySelector(".editor")) return;
+    x0 = e.clientX; y0 = e.clientY; dx = 0; mode = "maybe"; pid = e.pointerId; fg.classList.remove("snap");
+  });
+  fg.addEventListener("pointermove", e => {
+    if (!mode || e.pointerId !== pid) return;
+    const mx = e.clientX - x0, my = e.clientY - y0;
+    if (mode === "maybe"){
+      if (Math.abs(my) > 10 && Math.abs(my) > Math.abs(mx)) { mode = null; return; }
+      if (mx < -10 && Math.abs(mx) > Math.abs(my)) { mode = "drag"; try { fg.setPointerCapture(pid); } catch {} }
+      else return;
+    }
+    dx = Math.min(0, mx); fg.style.transform = `translateX(${dx}px)`;
+  });
+  const end = () => {
+    if (mode !== "drag"){ mode = null; return; }
+    mode = null; fg.classList.add("snap");
+    const li = fg.closest("li"), w = li.offsetWidth;
+    if (dx < -Math.min(110, w * 0.35)){
+      fg.style.transform = `translateX(${-w}px)`;
+      li.style.height = li.offsetHeight + "px";
+      requestAnimationFrame(() => { li.classList.add("gone"); li.style.height = "0px"; });
+      prefs.set("swiped", "1");
+      setTimeout(() => remove(li.dataset.id), 220);
+    } else fg.style.transform = "";
+    // swallow the click that follows a drag
+    fg.dataset.dragged = "1"; setTimeout(() => delete fg.dataset.dragged, 50);
+  };
+  fg.addEventListener("pointerup", end); fg.addEventListener("pointercancel", () => { if (mode === "drag"){ dx = 0; end(); } mode = null; });
+}
+
+function render(){
+  const byList = l => S.items.filter(i => i.list === l).sort((a,b)=>(a.addedAt||"").localeCompare(b.addedAt||""));
+  for (const list of LISTS){
+    const its = byList(list);
+    $("#count-"+list).textContent = its.length ? its.length + (its.length === 1 ? " item" : " items") : "";
+    $("#items-"+list).innerHTML = its.map(itemRow).join("");
+    if (IDEAS[list]){
+      const have = new Set(S.items.map(i => norm(i.name)));
+      const ideas = IDEAS[list].filter(x => !have.has(norm(x))).slice(0, 5);
+      $("#ideas-"+list).innerHTML = ideas.length && its.length < 4
+        ? `<span>Quick add:</span>` + ideas.map(x => `<button class="idea" type="button" data-idea="${list}|${esc(x)}">+ ${esc(x)}</button>`).join("")
+        : "";
+    }
+  }
+  $("#empty-tried").hidden = byList("tried").length > 0;
+  const been = byList("been").sort((a,b) => (b.visitedAt||"").localeCompare(a.visitedAt||""));
+  $("#count-been").textContent = been.length ? been.length + (been.length === 1 ? " visit" : " visits") : "";
+  $("#items-been").innerHTML = been.map(beenRow).join("");
+  $("#empty-been").hidden = been.length > 0;
+  document.querySelectorAll("ul.items .fg").forEach(bindSwipe);
+  $("#swipeTip").hidden = !S.items.length || prefs.get("swiped") === "1";
+  const dl = S.places.map(p => `<option value="${esc(p.name)}"></option>`).join("");
+  if ($("#placeNames").innerHTML !== dl) $("#placeNames").innerHTML = dl;
+
+  document.querySelectorAll("[data-pool]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.pool === S.pool)));
+  const pool = candidates();
+  if (!spinning) $("#go").disabled = !pool.length;
+  $("#go").classList.toggle("idle", !S.pick && pool.length > 0);
+  const what = S.places.length ? (pool.length === 1 ? "restaurant" : "restaurants") : (pool.length === 1 ? "option" : "options");
+  $("#goSub").innerHTML = pool.length ? `<b>${pool.length.toLocaleString()}</b><i>${what} to choose from</i>`
+    : `<i>${S.craving.trim() ? `No ${esc((FOODS.find(f => f[1] === S.craving) || [S.craving.trim()])[0])} spots here` : S.pool === "all" && S.placesState === "loading" ? "Loading restaurants…" : "Add to your lists first"}</i>`;
+  $("#craveClear").hidden = !$("#crave").value;
+  renderFoods();
+  const cz = [...new Set(S.places.map(p => p.cuisine))].sort().map(c => `<option value="${esc(c)}"></option>`).join("");
+  if ($("#cuisineNames").innerHTML !== cz) $("#cuisineNames").innerHTML = cz;
+  $("#go").setAttribute("aria-label", pool.length ? `Spin: pick from ${pool.length} ${what}` : "Spin");
+
+  const t = $("#ticket");
+  if (S.pick){
+    const p = S.pick, at = p.at instanceof Date ? p.at : new Date(p.at);
+    const live = p.itemId && S.items.find(i => i.id === p.itemId);
+    const isTry = p.list === "try";
+    const TAG = {try:"Something new!", fav:"One of your favorites", tried:"Tried before", all:"Tonight you're eating at"};
+    t.innerHTML = `<div class="meta"><span>ORDER #${String(S.order).padStart(3,"0")}</span><span>${at.toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"})} · ${at.toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"})}</span></div>
+      <span class="tag ${p.list === "all" ? "tried" : p.list}">${TAG[p.list] || ""}</span>
+      <p class="dish">${esc(p.name)}</p>${truckUrl(placeOf(p)) ? `<p class="where">🚚 Food truck, moves around. Home base: ${esc(p.address)}</p>` : (p.address || p.place) ? `<p class="where">${esc(p.address || p.place)}</p>` : ""}${(() => { const pl = placeOf(p); return pl ? `<p class="where">${pl.rating == null ? "New spot, no Google rating yet" : `★ ${pl.rating.toFixed(1)} on Google`} · ${"$".repeat(pl.price)}${pl.priceSource === "est" ? " (est.)" : ""} · ${esc(pl.cuisine)}</p>` : ""; })()}${p.via ? `<p class="where">Because you listed ${esc(p.via)}</p>` : ""}${p.placeId ? crowd(p.placeId, 1) : ""}
+      <div class="acts">${truckUrl(placeOf(p)) ? `<a class="btn dark" href="${esc(truckUrl(placeOf(p)))}" target="_blank" rel="noopener">Where's the truck today? ↗</a>` : `<a class="btn dark" href="${esc(mapsUrl(p))}" target="_blank" rel="noopener">Show me the map ↗</a>`}<button class="btn" type="button" id="again">Spin again</button>${
+        isTry && live && !p.confirmed ? `<button class="btn herb" type="button" data-loved="${p.itemId}">Tried it, loved it</button>` : p.placeId && !live ? `<button class="btn" type="button" data-addplace="${p.placeId}|fav">♥ Save to Favorites</button>` : ""
+      }</div>${p.confirmed ? (() => { const L = calLinks(p, p.time); return `<div class="locked" role="status">
+        <p class="lk-h">🎉 You're going to ${esc(p.name)}!</p>
+        <p class="lk-s">Saved to <b>Places I've been</b>. Pick a time and add it to your calendar so you get a reminder with the address.</p>
+        <label class="lk-t">Time <input type="time" id="lkTime" value="${esc(p.time)}"></label>
+        <div class="lk-where"><span>📍 ${esc(p.address || p.place || p.name)}</span>${truckUrl(placeOf(p)) ? `<a href="${esc(truckUrl(placeOf(p)))}" target="_blank" rel="noopener">Where's the truck today? ↗</a>` : `<a href="${esc(mapsUrl(p))}" target="_blank" rel="noopener">Open in Maps ↗</a>`}</div>
+        <div class="lk-cal"><a class="btn go-green" id="calG" href="${esc(L.g)}" target="_blank" rel="noopener">📅 Add to Google Calendar</a><a class="btn" id="calO" href="${esc(L.o)}" target="_blank" rel="noopener">Outlook calendar</a></div>
+      </div>`; })() : `<button class="btn go-green confirm" type="button" id="confirm">✓ Confirm, we're going here!</button>`}`;
+  } else {
+    t.innerHTML = `<div class="meta"><span>ORDER #---</span><span>Tonight</span></div>
+      <p style="margin:0;color:var(--muted)">Press the big Spin button and your restaurant pops up right here.</p>`;
+  }
+
+  const pins = listed().filter(i => i.list !== "tried").sort((a,b) => (a.list===b.list ? 0 : a.list==="fav" ? -1 : 1) || a.name.localeCompare(b.name));
+  $("#pins").innerHTML = pins.length ? pins.map((i, n) => `<div class="pin ${i.list}">
+      <span class="dot" aria-hidden="true"><i>${n+1}</i></span>
+      <span class="nm"><b>${esc(i.name)}</b><small>${esc(where(i))}</small></span>
+      <div class="links"><a class="btn" href="${esc(mapsUrl(i))}" target="_blank" rel="noopener">Closest location ↗</a>${
+        (i.place || i.address) ? "" : `<button class="ib" type="button" data-edit="${i.id}" data-go="lists">Add a restaurant</button>`}</div>
+    </div>`).join("") : `<p class="empty-note">Add foods on the Lists page and they show up here with a link to the closest place.</p>`;
+
+  renderExplore();
+  for (const v of VIEWS) $("#view-"+v).hidden = S.view !== v;
+  document.querySelectorAll("nav.tabs a").forEach(a => { if (a.dataset.view === S.view) a.setAttribute("aria-current","page"); else a.removeAttribute("aria-current"); });
+}
+function renderExplore(){
+  document.querySelectorAll("[data-kind]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.kind === S.f.kind)));
+  document.querySelectorAll("[data-price]").forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.price === S.f.price)));
+  const el = $("#cards");
+  if (!S.places.length){
+    el.innerHTML = `<p class="empty-note">${S.placesState === "loading" ? "Loading Hamilton places…" : "Couldn't load the restaurants. Refresh to try again."}</p>`;
+    return;
+  }
+  const q = norm(S.f.q);
+  const areas = [...new Set(S.places.map(areaOf))].sort((a,b) => a === "Hamilton" ? -1 : b === "Hamilton" ? 1 : a.localeCompare(b));
+  const sel = $("#area"), opts = `<option value="">All areas</option>` + areas.map(a => `<option value="${esc(a)}"${a === S.f.area ? " selected" : ""}>${esc(a)}</option>`).join("");
+  if (sel.dataset.sig !== opts){ sel.innerHTML = opts; sel.dataset.sig = opts; }
+  const list = S.places.filter(p => (S.f.kind === "all" || p.kind === S.f.kind) && (!S.f.price || p.price === S.f.price) && (!S.f.area || areaOf(p) === S.f.area)
+      && (!q || norm(p.name + " " + p.cuisine + " " + p.address).includes(q)))
+    .sort((a,b) => (b.rating ?? 0) - (a.rating ?? 0) || (b.reviews ?? 0) - (a.reviews ?? 0));
+  $("#ecount").textContent = `${list.length} of ${S.places.length} places`;
+  const mine = new Map(listed().map(i => [i.placeId, i.list]));
+  el.innerHTML = list.length ? list.map(p => {
+    const inList = mine.get(p.id);
+    const btns = inList && inList !== "tried"
+      ? `<span class="btn in">In ${inList === "fav" ? "Favorites" : "Want to try"}</span>`
+      : `<button class="btn" type="button" data-addplace="${p.id}|fav">+ Favorite</button><button class="btn" type="button" data-addplace="${p.id}|try">+ Want to try</button>`;
+    return `<article class="card">
+      <div class="top"><b>${esc(p.name)}</b><span class="price" title="Price level">${dollars(p)}</span></div>
+      <div class="sub">${p.rating == null ? `<span>New spot, no Google rating yet</span>` : `<span class="stars">${p.rating.toFixed(1)}</span>${p.reviews ? `<span>${p.reviews.toLocaleString()} Google reviews</span>` : `<span>on Google</span>`}`}<span>${esc(p.cuisine)}</span><span>${esc(areaOf(p))}</span>${truckUrl(p) ? `<span class="truck">🚚 Food truck</span>` : ""}</div>
+      <div class="addr">${truckUrl(p) ? "Home base: " : ""}${esc(p.address)}</div>${crowd(p.id, 2)}
+      <div class="links">${btns}${truckUrl(p) ? `<a class="btn dark" href="${esc(truckUrl(p))}" target="_blank" rel="noopener">Where's the truck today? ↗</a>` : `<a class="btn" href="${esc(mapsUrl(p))}" target="_blank" rel="noopener">Map ↗</a>`}</div>
+    </article>`;
+  }).join("") : `<p class="empty-note">No places match. Try another search or price.</p>`;
+}
+function show(view){ if (!VIEWS.includes(view)) view = "pick"; if (view !== S.view){ S.view = view; S.editing = null; prefs.set("view", view); render(); window.scrollTo(0,0); } }
+
+/* ---------- Events ---------- */
+$("#go").addEventListener("click", spin);
+function toWheel(){
+  const g = $("#go");
+  g.scrollIntoView({behavior: calm() ? "auto" : "smooth", block: "center"});
+  setTimeout(() => { g.classList.remove("hello"); void g.offsetWidth; g.classList.add("hello"); g.focus({preventScroll: true}); }, calm() ? 0 : 450);
+}
+$("#go").addEventListener("animationend", e => { if (e.animationName === "hello") e.currentTarget.classList.remove("hello"); });
+$("#dinner").addEventListener("click", toWheel);
+$("#dinner").addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toWheel(); } });
+$("#crave").addEventListener("input", e => { S.craving = e.target.value; render(); });
+$("#foods").addEventListener("click", e => { const b = e.target.closest("[data-food]"); if (!b) return; S.craving = b.dataset.food; $("#crave").value = ""; render(); });
+$("#crave").addEventListener("keydown", e => { if (e.key === "Enter"){ e.preventDefault(); e.target.blur(); spin(); } });
+$("#craveClear").addEventListener("click", () => { S.craving = ""; $("#crave").value = ""; render(); });
+document.querySelectorAll("[data-pool]").forEach(b => b.addEventListener("click", () => { S.pool = b.dataset.pool; local.save(); render(); }));
+document.querySelectorAll("form.add").forEach(f => f.addEventListener("submit", e => {
+  e.preventDefault(); const inp = f.querySelector("input"); add(f.dataset.list, inp.value); inp.value = ""; inp.focus();
+}));
+document.querySelectorAll("nav.tabs a").forEach(a => a.addEventListener("click", e => { e.preventDefault(); show(a.dataset.view); try { history.replaceState(null, "", "#" + a.dataset.view); } catch {} }));
+document.addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  if (b.closest('.fg[data-dragged]')) return;
+  const d = b.dataset;
+  if (d.tipok){ prefs.set("swiped", "1"); render(); return; }
+  if (b.id === "again") spin();
+  else if (b.id === "confirm") confirmPick();
+  else if (d.idea){ const [l, n] = d.idea.split("|"); add(l, n); }
+  else if (d.addplace){ const [pid, l] = d.addplace.split("|"); addPlace(pid, l); }
+  else if (d.kind){ S.f.kind = d.kind; renderExplore(); }
+  else if (d.price !== undefined && b.closest("#view-explore")){ S.f.price = +d.price; renderExplore(); }
+  else if (d.rate){ const [id, v] = d.rate.split("|"); rateVisit(id, v); }
+  else if (d.loved) tried(d.loved, true);
+  else if (d.meh) tried(d.meh, false);
+  else if (d.retry) move(d.retry, "try");
+  else if (d.edit){ S.editing = d.edit; if (d.go) show(d.go); render(); setTimeout(() => $("#ed-place")?.focus(), 0); }
+  else if (d.cancel){ S.editing = null; render(); }
+  else if (d.save){
+    const name = clean($("#ed-name").value);
+    const patch = {place: clean($("#ed-place").value), list: $("#ed-list").value};
+    if (name) patch.name = name;
+    S.editing = null; update(d.save, patch);
+  }
+  else if (d.remove){ S.editing = null; remove(d.remove); }
+});
+document.addEventListener("change", e => {
+  const id = e.target.dataset && e.target.dataset.cmt; if (!id) return;
+  const it = S.items.find(i => i.id === id); if (!it) return;
+  const c = cleanComment(e.target.value); if (c === (it.comment || "")) return;
+  update(id, {comment: c}); if (it.placeId) REV.sync(it.placeId);
+  toast(c ? "Comment saved" : "Comment removed");
+});
+document.addEventListener("keydown", e => { if (e.key === "Enter" && e.target.dataset && e.target.dataset.cmt){ e.preventDefault(); e.target.blur(); } });
+document.addEventListener("input", e => {
+  if (e.target.id !== "lkTime" || !S.pick) return;
+  S.pick.time = e.target.value; const L = calLinks(S.pick, S.pick.time);
+  $("#calG").href = L.g; $("#calO").href = L.o;
+});
+$("#q").addEventListener("input", e => { S.f.q = e.target.value; renderExplore(); });
+$("#area").addEventListener("change", e => { S.f.area = e.target.value; renderExplore(); });
+document.addEventListener("keydown", e => {
+  if (!S.editing) return;
+  if (e.key === "Escape"){ S.editing = null; render(); }
+  if (e.key === "Enter" && e.target.closest(".editor input")) $(`[data-save="${S.editing}"]`)?.click();
+});
+
+/* ---------- Boot ---------- */
+const saved = local.load();
+S.items = Array.isArray(saved.items) ? saved.items : [];
+S.pool = saved.poolV === 2 && ["both","fav","all"].includes(saved.pool) ? saved.pool : "all";
+S.order = saved.order || 0;
+S.view = VIEWS.includes(location.hash.slice(1)) ? location.hash.slice(1) : VIEWS.includes(prefs.get("view")) ? prefs.get("view") : "pick";
+GATE.ok = !!prefs.get("gateEmail");
+S.store = localStore; setStatus(); render();
+
+fetch("/places.json").then(r => r.ok ? r.json() : Promise.reject())
+  .then(rows => { S.places = rows.filter(p => p.name && p.address && (typeof p.rating === "number" || p.rating === null)); S.placesState = "ready"; render(); })
+  .catch(() => { S.placesState = "none"; render(); });
+REV.start();
+})();
+</script>
+</body>
+</html>

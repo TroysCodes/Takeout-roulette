@@ -1,0 +1,7 @@
+{
+  "cleanUrls": true,
+  "headers": [
+    { "source": "/admin", "headers": [{ "key": "X-Robots-Tag", "value": "noindex" }, { "key": "Cache-Control", "value": "no-store" }] },
+    { "source": "/places.json", "headers": [{ "key": "Cache-Control", "value": "public, max-age=300" }] }
+  ]
+}
