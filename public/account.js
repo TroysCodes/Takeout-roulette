@@ -123,6 +123,12 @@ if (gateForm && !$("#gateAcct")){
   $("#gateAcct").addEventListener("click", () => { const g = $("#gate"); if (g.close && g.open) g.close(); openAcct("login"); });
 }
 
+// Visitor count for the founder dashboard: once per browser tab, with the anonymous browser id
+try {
+  const id = localStorage.getItem("takeout-anon");
+  if (id && !sessionStorage.getItem("tr-visit")){ sessionStorage.setItem("tr-visit", "1"); api("/api/visit", {method: "POST", body: JSON.stringify({id})}).catch(() => {}); }
+} catch {}
+
 paintMenu();
 api("/api/auth").then(r => r.ok && r.body.user && signedIn(r.body.user, false)).catch(() => {});
 })();

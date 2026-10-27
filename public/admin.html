@@ -50,7 +50,7 @@ textarea{width:100%;min-height:140px;margin-top:12px;font:14px ui-monospace,mono
 <main>
   <a class="back" href="/">← Back to Takeout Roulette</a>
   <h1>Owner page</h1>
-  <p class="sub">Your email sign-ups and diner reviews for Takeout Roulette, kept apart. Only someone with the admin password can open this.</p>
+  <p class="sub">Visitors, email sign-ups and diner reviews for Takeout Roulette. Only the founder account or the admin password can open this.</p>
 
   <form id="login">
     <p class="note" style="margin-top:0">Sign in on the main site with your founder account and this page opens by itself. Or use the admin password:</p>
@@ -62,6 +62,10 @@ textarea{width:100%;min-height:140px;margin-top:12px;font:14px ui-monospace,mono
 
   <p class="note" id="signedAs" hidden></p>
   <p class="note" id="ownerNote" hidden>✅ This device now has unlimited spins on Takeout Roulette.</p>
+  <div class="box" id="visits" hidden style="margin-bottom:12px">
+    <div class="head"><strong>Visitors</strong><span class="count" id="vMonth"></span></div>
+    <div class="stats" id="vStats" style="margin-top:10px"></div>
+  </div>
   <div class="tabs" id="tabs" role="tablist" hidden>
     <button type="button" role="tab" data-tab="list" aria-selected="true">📬 Email sign-ups</button>
     <button type="button" role="tab" data-tab="rv" aria-selected="false">⭐ Reviews</button>
@@ -99,13 +103,21 @@ async function load(){
   const out = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(out.error || "Something went wrong");
   ROWS = out.rows || [];
-  $("#login").hidden = true; $("#tabs").hidden = false; showTab("list"); loadReviews();
+  $("#login").hidden = true; $("#tabs").hidden = false; showTab("list"); loadReviews(); loadVisits();
   // Owner gets unlimited spins on this device (the app checks this flag)
   try { localStorage.setItem("takeout-pref-owner", "1"); } catch {}
   $("#ownerNote").hidden = false;
   $("#count").textContent = ROWS.length + (ROWS.length === 1 ? " person" : " people");
   $("#csv").disabled = $("#copy").disabled = !ROWS.length;
   $("#rows").innerHTML = ROWS.length ? ROWS.map(r => { const d = new Date(r.at); return `<li><span>${esc(r.email)}</span><small>${isNaN(d) ? "" : d.toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"})}</small></li>`; }).join("") : "<li>No sign-ups yet.</li>";
+}
+async function loadVisits(){
+  const r = await fetch("/api/stats", {credentials: "same-origin", headers: PW ? {Authorization: "Bearer " + PW} : {}}).catch(() => null);
+  if (!r || !r.ok) return;
+  const s = await r.json(), mon = k => new Date(k + "-15").toLocaleDateString(undefined, {month: "long"});
+  $("#vMonth").textContent = mon(s.month);
+  $("#vStats").innerHTML = `<div><b>${s.thisMonth.visitors}</b><span>visitors this month</span></div><div><b>${s.today}</b><span>visitors today</span></div><div><b>${s.thisMonth.views}</b><span>visits this month</span></div><div><b>${s.lastMonth.visitors}</b><span>visitors in ${mon(s.last)}</span></div><div><b>${s.accounts}</b><span>accounts</span></div>`;
+  $("#visits").hidden = false;
 }
 function showTab(t){ ["list","rv"].forEach(x => $("#" + x).hidden = x !== t); document.querySelectorAll("[data-tab]").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === t))); }
 document.querySelectorAll("[data-tab]").forEach(b => b.addEventListener("click", () => showTab(b.dataset.tab)));
