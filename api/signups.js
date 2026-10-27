@@ -1,21 +1,12 @@
-// GET /api/signups — owner only. Send the ADMIN_PASSWORD (set in Vercel) as a Bearer token.
-const crypto = require("crypto");
+// GET /api/signups — founder only: a founder session, or the ADMIN_PASSWORD as a Bearer token.
 const { redis } = require("./_redis");
-
-function same(a, b) {
-  const x = crypto.createHash("sha256").update(String(a)).digest();
-  const y = crypto.createHash("sha256").update(String(b)).digest();
-  return crypto.timingSafeEqual(x, y);
-}
+const { isAdmin } = require("./_auth");
 
 module.exports = async (req, res) => {
   res.setHeader("Cache-Control", "no-store");
-  const pass = process.env.ADMIN_PASSWORD;
-  const given = (req.headers.authorization || "").replace(/^Bearer\s+/i, "");
-  if (!pass || pass.length < 8) return res.status(503).json({ error: "Set ADMIN_PASSWORD (8+ characters) in Vercel first" });
-  if (!given || !same(given, pass)) {
+  if (!(await isAdmin(req))) {
     await new Promise(r => setTimeout(r, 600));
-    return res.status(401).json({ error: "Wrong password" });
+    return res.status(401).json({ error: process.env.ADMIN_PASSWORD || process.env.FOUNDER_EMAIL ? "Wrong password" : "Set FOUNDER_EMAIL in Vercel first" });
   }
   try {
     const flat = (await redis("HGETALL", "signups")) || [];

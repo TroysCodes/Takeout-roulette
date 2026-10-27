@@ -307,7 +307,12 @@ nav.tabs{position:absolute;right:0;top:calc(100% + 8px);left:auto;bottom:auto;mi
 nav.tabs a{flex-direction:row;justify-content:flex-start;gap:12px;padding:12px 14px;border-radius:12px;font-size:16px;color:var(--fg)}
 nav.tabs a:hover{background:var(--sunk)}
 @media (prefers-reduced-motion:reduce){nav.tabs{animation:none}}
-nav.tabs a.owner-link{border-top:1px solid var(--line);border-radius:0 0 12px 12px;margin-top:4px;padding-top:14px;color:var(--muted);font-size:14px}
+nav.tabs .acct-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;font-size:15px;font-weight:700;color:var(--fg);text-decoration:none;border:0;background:none;text-align:left;width:100%}
+nav.tabs .acct-item svg{width:22px;height:22px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+nav.tabs button.acct-item:hover,nav.tabs a.acct-item:hover{background:var(--sunk)}
+nav.tabs .acct-who{border-top:1px solid var(--line);border-radius:0;margin-top:4px;padding-top:14px;color:var(--muted);font-size:13px;font-weight:600;overflow-wrap:anywhere}
+nav.tabs .acct-who b{display:inline-block;margin-left:6px;background:var(--sun);color:#16293B;border-radius:999px;padding:1px 8px;font-size:11px}
+#menu > button#acctIn{border-top:1px solid var(--line);border-radius:0 0 12px 12px;margin-top:4px;padding-top:14px}
 </style>
 
 <main class="wrap">
@@ -321,7 +326,6 @@ nav.tabs a.owner-link{border-top:1px solid var(--line);border-radius:0 0 12px 12
         <a href="#lists" data-view="lists"><svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/></svg>My lists</a>
         <a href="#explore" data-view="explore"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></svg>Explore</a>
         <a href="#map" data-view="map"><svg viewBox="0 0 24 24"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></svg>Map</a>
-        <a href="/admin" class="owner-link"><svg viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="9.5" rx="2"/><path d="M8.5 10.5V7.5a3.5 3.5 0 0 1 7 0v3"/></svg>Owner sign-in</a>
       </nav>
     </div>
   </header>
@@ -464,7 +468,7 @@ const local = {
   save(){ try { localStorage.setItem(LS, JSON.stringify({items:S.items, pool:S.pool, poolV:2, order:S.order})); } catch {} }
 };
 const localStore = { put(){ local.save(); return Promise.resolve(); }, del(){ local.save(); return Promise.resolve(); }, kind:"local" };
-function setStatus(){ $("#status").textContent = "Saved on this device"; }
+function setStatus(){ $("#status").textContent = S.store && S.store.kind === "acct" ? "Saved to your account" : "Saved on this device"; }
 
 /* ---------- Actions ---------- */
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
@@ -1007,9 +1011,12 @@ fetch("/places.json").then(r => r.ok ? r.json() : Promise.reject())
   .then(rows => { S.places = rows.filter(p => p.name && p.address && (typeof p.rating === "number" || p.rating === null)); S.placesState = "ready"; render(); })
   .catch(() => { S.placesState = "none"; render(); });
 REV.start();
+// Hooks for account.js (accounts exist on the website only)
+window.__TR = {S, render, SPINS, REV, GATE, prefs, local, localStore, toast, norm, DAILY, setStatus};
 // The owner unlocks unlimited spins on a device by signing in at /admin
 SPINS.owner = prefs.get("owner") === "1"; render();
 })();
 </script>
+<script src="/account.js" defer></script>
 </body>
 </html>

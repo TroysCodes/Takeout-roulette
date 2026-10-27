@@ -53,12 +53,14 @@ textarea{width:100%;min-height:140px;margin-top:12px;font:14px ui-monospace,mono
   <p class="sub">Your email sign-ups and diner reviews for Takeout Roulette, kept apart. Only someone with the admin password can open this.</p>
 
   <form id="login">
+    <p class="note" style="margin-top:0">Sign in on the main site with your founder account and this page opens by itself. Or use the admin password:</p>
     <label for="pw">Admin password</label>
     <input id="pw" type="password" autocomplete="current-password" required>
     <div class="row"><button type="submit">Show sign-ups</button></div>
     <p class="err" id="err" hidden></p>
   </form>
 
+  <p class="note" id="signedAs" hidden></p>
   <p class="note" id="ownerNote" hidden>✅ This device now has unlimited spins on Takeout Roulette.</p>
   <div class="tabs" id="tabs" role="tablist" hidden>
     <button type="button" role="tab" data-tab="list" aria-selected="true">📬 Email sign-ups</button>
@@ -93,7 +95,7 @@ let ROWS = [], PW = "";
 try { PW = sessionStorage.getItem("tr-admin") || ""; } catch {}
 
 async function load(){
-  const r = await fetch("/api/signups", {headers: {Authorization: "Bearer " + PW}});
+  const r = await fetch("/api/signups", {credentials: "same-origin", headers: PW ? {Authorization: "Bearer " + PW} : {}});
   const out = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(out.error || "Something went wrong");
   ROWS = out.rows || [];
@@ -147,7 +149,11 @@ $("#copy").addEventListener("click", async () => {
   catch { const x = $("#txt"); x.value = t; x.hidden = false; x.select(); }
 });
 $("#out").addEventListener("click", () => { try { sessionStorage.removeItem("tr-admin"); } catch {} location.reload(); });
-if (PW) load().catch(() => { PW = ""; });
+// Signed in as the founder on the main site? Then no password is needed here.
+fetch("/api/auth", {credentials: "same-origin"}).then(r => r.json()).then(o => {
+  if (o.user && o.user.founder){ $("#signedAs").textContent = `Signed in as ${o.user.email} (founder)`; $("#signedAs").hidden = false; return load(); }
+  if (PW) return load();
+}).catch(() => { if (PW) load().catch(() => { PW = ""; }); });
 })();
 </script>
 </body>
