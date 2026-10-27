@@ -287,12 +287,39 @@ nav.tabs a[aria-current="page"]{color:var(--chili-ink);background:var(--chili-so
 .card .sub .truck{background:var(--sun);color:#16293B;font-weight:700;padding:1px 9px;border-radius:999px}
 @media (prefers-reduced-motion:reduce){.hero .q mark,.go.hello{animation:none}}
 @media (prefers-reduced-motion:reduce){.go,.go.idle,.go.spin:disabled,.ticket.landed,.food,.btn,.card{animation:none;transition:none}}
+
+/* Sticky top bar with one drop-down menu (Troy, 2026-10-27); nothing pinned at the bottom */
+:root{--tabs:0px;--top:62px}
+html{overflow-x:clip}
+body{margin:0}
+.wrap{padding-top:0;padding-bottom:calc(32px + env(safe-area-inset-bottom,0px))}
+.topbar{position:sticky;top:0;z-index:6;margin:0 calc(50% - 50vw);padding:10px max(16px,calc(50vw - 50%),env(safe-area-inset-left,0px));min-height:var(--top);
+  background:color-mix(in srgb,var(--bg) 86%,transparent);-webkit-backdrop-filter:blur(16px) saturate(1.3);backdrop-filter:blur(16px) saturate(1.3);box-shadow:0 1px 0 var(--line),0 10px 24px -20px rgba(22,41,59,.35)}
+a.brand{text-decoration:none;color:var(--fg)}
+.menu-wrap{position:relative}
+.menu-btn{display:inline-flex;align-items:center;gap:7px;border:0;border-radius:999px;padding:9px 12px 9px 14px;font-weight:700;font-size:15px;background:var(--surface);box-shadow:var(--shadow-sm),inset 0 0 0 1.5px var(--line)}
+.menu-btn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.menu-btn .chev{transition:transform .2s}
+.menu-btn[aria-expanded="true"] .chev{transform:rotate(180deg)}
+nav.tabs{position:absolute;right:0;top:calc(100% + 8px);left:auto;bottom:auto;min-width:200px;display:flex;flex-direction:column;gap:2px;padding:6px;border-radius:18px;background:var(--surface);box-shadow:var(--shadow),inset 0 0 0 1px var(--line);z-index:7;animation:drop .18s ease-out}
+@keyframes drop{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+nav.tabs a{flex-direction:row;justify-content:flex-start;gap:12px;padding:12px 14px;border-radius:12px;font-size:16px;color:var(--fg)}
+nav.tabs a:hover{background:var(--sunk)}
+@media (prefers-reduced-motion:reduce){nav.tabs{animation:none}}
 </style>
 
 <main class="wrap">
-  <header>
-    <p class="brand"><i class="mark" aria-hidden="true"></i>Takeout <span>Roulette</span></p>
-    <div class="status" id="status">Saved on this device</div>
+  <header class="topbar">
+    <a class="brand" href="#pick" id="home" aria-label="Takeout Roulette, home"><i class="mark" aria-hidden="true"></i>Takeout <span>Roulette</span></a>
+    <div class="status" id="status" hidden>Saved on this device</div>
+    <div class="menu-wrap">
+      <button class="menu-btn" id="menuBtn" type="button" aria-expanded="false" aria-controls="menu"><svg class="burger" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg><span id="menuNow">Menu</span><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+      <nav class="tabs" id="menu" aria-label="Sections" hidden>
+        <a href="#lists" data-view="lists"><svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/></svg>My lists</a>
+        <a href="#explore" data-view="explore"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></svg>Explore</a>
+        <a href="#map" data-view="map"><svg viewBox="0 0 24 24"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></svg>Map</a>
+      </nav>
+    </div>
   </header>
 
   <!-- Takeout -->
@@ -414,14 +441,6 @@ nav.tabs a[aria-current="page"]{color:var(--chili-ink);background:var(--chili-so
 <div class="toast" id="toast" role="status" aria-live="polite"><span id="toastMsg"></span><button type="button" id="toastUndo">Undo</button></div>
 <datalist id="placeNames"></datalist>
 
-<nav class="tabs" aria-label="Sections">
-  <div class="in">
-    <a href="#pick" data-view="pick"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v4.5l3 2"/></svg>Spin</a>
-    <a href="#lists" data-view="lists"><svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/></svg>My lists</a>
-    <a href="#explore" data-view="explore"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></svg>Explore</a>
-    <a href="#map" data-view="map"><svg viewBox="0 0 24 24"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></svg>Map</a>
-  </div>
-</nav>
 
 <script>
 (() => {
@@ -853,6 +872,7 @@ function render(){
   renderExplore();
   for (const v of VIEWS) $("#view-"+v).hidden = S.view !== v;
   document.querySelectorAll("nav.tabs a").forEach(a => { if (a.dataset.view === S.view) a.setAttribute("aria-current","page"); else a.removeAttribute("aria-current"); });
+  $("#menuNow").textContent = {lists:"My lists", explore:"Explore", map:"Map"}[S.view] || "Menu";
 }
 function renderExplore(){
   document.querySelectorAll("[data-kind]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.kind === S.f.kind)));
@@ -904,7 +924,12 @@ document.querySelectorAll("[data-pool]").forEach(b => b.addEventListener("click"
 document.querySelectorAll("form.add").forEach(f => f.addEventListener("submit", e => {
   e.preventDefault(); const inp = f.querySelector("input"); add(f.dataset.list, inp.value); inp.value = ""; inp.focus();
 }));
-document.querySelectorAll("nav.tabs a").forEach(a => a.addEventListener("click", e => { e.preventDefault(); show(a.dataset.view); try { history.replaceState(null, "", "#" + a.dataset.view); } catch {} }));
+function setMenu(open){ $("#menu").hidden = !open; $("#menuBtn").setAttribute("aria-expanded", String(open)); }
+$("#menuBtn").addEventListener("click", e => { e.stopPropagation(); setMenu($("#menu").hidden); });
+document.addEventListener("click", e => { if (!e.target.closest(".menu-wrap")) setMenu(false); });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("#menu").hidden){ setMenu(false); $("#menuBtn").focus(); } });
+$("#home").addEventListener("click", e => { e.preventDefault(); setMenu(false); show("pick"); try { history.replaceState(null, "", "#pick"); } catch {} });
+document.querySelectorAll("nav.tabs a").forEach(a => a.addEventListener("click", e => { e.preventDefault(); setMenu(false); show(a.dataset.view); try { history.replaceState(null, "", "#" + a.dataset.view); } catch {} }));
 document.addEventListener("click", e => {
   const b = e.target.closest("button"); if (!b) return;
   if (b.closest('.fg[data-dragged]')) return;
