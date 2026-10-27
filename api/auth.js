@@ -1,6 +1,6 @@
 // GET  /api/auth -> {user: {email, uid, founder} | null}
 // POST /api/auth {action: "signup" | "login" | "logout", email, password}
-const { redis } = require("./_redis");
+const { redis, NoDatabase } = require("./_redis");
 const A = require("./_auth");
 
 module.exports = async (req, res) => {
@@ -38,6 +38,8 @@ module.exports = async (req, res) => {
     await A.startSession(res, email);
     res.status(200).json({ user: { email, uid: A.uidOf(email), founder: A.isFounder(email) } });
   } catch (e) {
+    if (e instanceof NoDatabase) return res.status(503).json({ error: "Accounts aren't switched on yet: the site's database isn't connected." });
+    console.error("auth failed:", e);
     res.status(500).json({ error: "Something went wrong. Try again." });
   }
 };
