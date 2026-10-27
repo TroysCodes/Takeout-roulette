@@ -56,6 +56,7 @@ textarea{width:100%;min-height:140px;margin-top:12px;font:14px ui-monospace,mono
     <p class="err" id="err" hidden></p>
   </form>
 
+  <p class="note" id="ownerNote" hidden>✅ This device now has unlimited spins on Takeout Roulette.</p>
   <div class="tabs" id="tabs" role="tablist" hidden>
     <button type="button" role="tab" data-tab="list" aria-selected="true">📬 Email sign-ups</button>
     <button type="button" role="tab" data-tab="rv" aria-selected="false">⭐ Reviews</button>
@@ -94,6 +95,9 @@ async function load(){
   if (!r.ok) throw new Error(out.error || "Something went wrong");
   ROWS = out.rows || [];
   $("#login").hidden = true; $("#tabs").hidden = false; showTab("list"); loadReviews();
+  // Owner gets unlimited spins on this device (the app checks this flag)
+  try { localStorage.setItem("takeout-pref-owner", "1"); } catch {}
+  $("#ownerNote").hidden = false;
   $("#count").textContent = ROWS.length + (ROWS.length === 1 ? " person" : " people");
   $("#csv").disabled = $("#copy").disabled = !ROWS.length;
   $("#rows").innerHTML = ROWS.length ? ROWS.map(r => { const d = new Date(r.at); return `<li><span>${esc(r.email)}</span><small>${isNaN(d) ? "" : d.toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"})}</small></li>`; }).join("") : "<li>No sign-ups yet.</li>";

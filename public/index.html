@@ -110,6 +110,7 @@ h3{font-family:var(--display);font-weight:700;font-size:20px;margin:0}
 .go small{display:block;font-family:var(--body);font-size:13px;font-weight:600;letter-spacing:.01em;margin-top:4px;line-height:1.25;text-transform:none}
 .go small b{display:block;font-family:var(--display);font-weight:900;font-size:clamp(30px,8.5vw,38px);letter-spacing:-.02em;line-height:1;font-variant-numeric:tabular-nums}
 .go small i{font-style:normal;opacity:.8}
+.go small i.left{display:block;font-size:12px;font-weight:700;margin-top:5px;opacity:.9}
 .go:hover{transform:scale(1.02)}
 .go:active{transform:scale(.96)}
 .go:disabled{opacity:.5;cursor:default}
@@ -678,11 +679,22 @@ $("#gateForm").addEventListener("submit", e => {
 });
 $("#gateLater").addEventListener("click", closeGate);
 const csvCell = v => /[",\n]/.test(v) ? `"${String(v).replace(/"/g, '""')}"` : String(v);
+/* ---------- 3 spins per person per day; the owner spins as much as they like ---------- */
+const DAILY = 3;
+const SPINS = {
+  owner: false,
+  key: () => "spins-" + new Date().toLocaleDateString("en-CA"),
+  used(){ return +(prefs.get(this.key()) || 0); },
+  left(){ return this.owner ? Infinity : Math.max(0, DAILY - this.used()); },
+  take(){ if (!this.owner) prefs.set(this.key(), String(this.used() + 1)); }
+};
 let spinning = false;
 function spin(){
   if (spinning) return;
   if (!GATE.ok){ openGate(); return; }
+  if (!SPINS.left()){ toast(`That's your ${DAILY} spins for today. Come back tomorrow for more!`); render(); return; }
   const pool = candidates(); if (!pool.length) return;
+  SPINS.take();
   const choices = pool.length > 1 && S.pick ? pool.filter(c => c.key !== S.pick.key) : pool;
   const it = choices[Math.floor(Math.random() * choices.length)];
   const g = $("#go"); g.classList.remove("spin"); void g.offsetWidth; g.classList.add("spin");
@@ -827,10 +839,13 @@ function render(){
 
   document.querySelectorAll("[data-pool]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.pool === S.pool)));
   const pool = candidates();
-  if (!spinning) $("#go").disabled = !pool.length;
-  $("#go").classList.toggle("idle", !S.pick && pool.length > 0);
+  const left = SPINS.left();
+  if (!spinning) $("#go").disabled = !pool.length || !left;
+  $("#go").classList.toggle("idle", !S.pick && pool.length > 0 && left > 0);
   const what = S.places.length ? (pool.length === 1 ? "restaurant" : "restaurants") : (pool.length === 1 ? "option" : "options");
-  $("#goSub").innerHTML = pool.length ? `<b>${pool.length.toLocaleString()}</b><i>${what} to choose from</i>`
+  const tally = SPINS.owner ? "" : `<i class="left">${left} of ${DAILY} spins left today</i>`;
+  $("#goSub").innerHTML = !left ? `<i>No spins left today</i><i class="left">Come back tomorrow!</i>`
+    : pool.length ? `<b>${pool.length.toLocaleString()}</b><i>${what} to choose from</i>${tally}`
     : `<i>${S.craving.trim() ? `No ${esc((FOODS.find(f => f[1] === S.craving) || [S.craving.trim()])[0])} spots here` : S.pool === "all" && S.placesState === "loading" ? "Loading restaurants…" : "Add to your lists first"}</i>`;
   $("#craveClear").hidden = !$("#crave").value;
   renderFoods();
@@ -989,6 +1004,8 @@ fetch("/places.json").then(r => r.ok ? r.json() : Promise.reject())
   .then(rows => { S.places = rows.filter(p => p.name && p.address && (typeof p.rating === "number" || p.rating === null)); S.placesState = "ready"; render(); })
   .catch(() => { S.placesState = "none"; render(); });
 REV.start();
+// The owner unlocks unlimited spins on a device by signing in at /admin
+SPINS.owner = prefs.get("owner") === "1"; render();
 })();
 </script>
 </body>
