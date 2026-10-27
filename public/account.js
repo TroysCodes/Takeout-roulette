@@ -10,6 +10,12 @@ const api = (path, opts = {}) => fetch(path, {credentials: "same-origin", header
   .then(async r => ({ok: r.ok, status: r.status, body: await r.json().catch(() => ({}))}));
 
 /* ---------- Sign-in dialog (reuses the email pop-up's look) ---------- */
+document.head.insertAdjacentHTML("beforeend", `<style>
+.pw-wrap{position:relative;display:flex;flex-direction:column}
+.pw-wrap input{padding-left:64px;padding-right:64px}
+.pw-eye{position:absolute;right:8px;top:calc(50% + 2px);transform:translateY(-50%);font:700 14px Figtree,system-ui,sans-serif;border:0;border-radius:999px;padding:7px 12px;background:var(--surface,#fff);color:var(--fg);box-shadow:0 0 0 1.5px var(--line);cursor:pointer}
+.pw-eye:focus-visible{outline:2px solid var(--chili);outline-offset:2px}
+</style>`);
 document.body.insertAdjacentHTML("beforeend", `
 <dialog class="gate" id="acct" aria-labelledby="acctH">
   <form id="acctForm" novalidate>
@@ -17,7 +23,10 @@ document.body.insertAdjacentHTML("beforeend", `
     <h2 id="acctH">Sign in</h2>
     <p id="acctSub">Your lists, visits and ratings follow you to any device.</p>
     <input id="acctEmail" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" aria-label="Email" required>
-    <input id="acctPw" type="password" autocomplete="current-password" placeholder="Password (8+ characters)" aria-label="Password" required minlength="8">
+    <div class="pw-wrap">
+      <input id="acctPw" type="password" autocomplete="current-password" placeholder="Password (8+ characters)" aria-label="Password" required minlength="8">
+      <button type="button" class="pw-eye" id="acctEye" aria-label="Show password" aria-pressed="false">Show</button>
+    </div>
     <p class="gate-err" id="acctErr" role="alert" hidden></p>
     <button class="btn go-green gate-go" type="submit" id="acctGo">Sign in</button>
     <button class="gate-later" type="button" id="acctSwap">New here? Create an account</button>
@@ -25,7 +34,7 @@ document.body.insertAdjacentHTML("beforeend", `
   </form>
 </dialog>`);
 function openAcct(mode){
-  A.mode = mode || "login"; paintAcct(); $("#acctErr").hidden = true;
+  A.mode = mode || "login"; paintAcct(); showPw(false); $("#acctErr").hidden = true;
   const d = $("#acct"); if (d.showModal){ if (!d.open) d.showModal(); } else d.setAttribute("open", "");
   setTimeout(() => $("#acctEmail").focus(), 50);
 }
@@ -39,6 +48,8 @@ function paintAcct(){
 }
 $("#acctSwap").addEventListener("click", () => { A.mode = A.mode === "signup" ? "login" : "signup"; paintAcct(); $("#acctErr").hidden = true; });
 $("#acctClose").addEventListener("click", closeAcct);
+function showPw(on){ $("#acctPw").type = on ? "text" : "password"; $("#acctEye").textContent = on ? "Hide" : "Show"; $("#acctEye").setAttribute("aria-pressed", String(on)); $("#acctEye").setAttribute("aria-label", on ? "Hide password" : "Show password"); }
+$("#acctEye").addEventListener("click", () => { showPw($("#acctPw").type === "password"); $("#acctPw").focus(); });
 $("#acctForm").addEventListener("submit", async e => {
   e.preventDefault();
   const email = $("#acctEmail").value.trim(), password = $("#acctPw").value;
@@ -48,7 +59,7 @@ $("#acctForm").addEventListener("submit", async e => {
   const r = await api("/api/auth", {method: "POST", body: JSON.stringify({action: A.mode, email, password})}).catch(() => null);
   $("#acctGo").disabled = false;
   if (!r || !r.ok) return err((r && r.body.error) || "Couldn't reach the server. Try again.");
-  $("#acctPw").value = ""; closeAcct();
+  $("#acctPw").value = ""; showPw(false); closeAcct();
   await signedIn(r.body.user, true);
 });
 
