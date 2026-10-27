@@ -2,5 +2,5 @@
   "name": "takeout-roulette",
   "private": true,
   "description": "Spin for a local Hamilton takeout spot",
-  "engines": { "node": ">=18" }
+  "engines": { "node": "22.x" }
 }
