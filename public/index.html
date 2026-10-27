@@ -307,6 +307,7 @@ nav.tabs{position:absolute;right:0;top:calc(100% + 8px);left:auto;bottom:auto;mi
 nav.tabs a{flex-direction:row;justify-content:flex-start;gap:12px;padding:12px 14px;border-radius:12px;font-size:16px;color:var(--fg)}
 nav.tabs a:hover{background:var(--sunk)}
 @media (prefers-reduced-motion:reduce){nav.tabs{animation:none}}
+nav.tabs a.owner-link{border-top:1px solid var(--line);border-radius:0 0 12px 12px;margin-top:4px;padding-top:14px;color:var(--muted);font-size:14px}
 </style>
 
 <main class="wrap">
@@ -320,6 +321,7 @@ nav.tabs a:hover{background:var(--sunk)}
         <a href="#lists" data-view="lists"><svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/></svg>My lists</a>
         <a href="#explore" data-view="explore"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></svg>Explore</a>
         <a href="#map" data-view="map"><svg viewBox="0 0 24 24"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></svg>Map</a>
+        <a href="/admin" class="owner-link"><svg viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="9.5" rx="2"/><path d="M8.5 10.5V7.5a3.5 3.5 0 0 1 7 0v3"/></svg>Owner sign-in</a>
       </nav>
     </div>
   </header>
@@ -945,7 +947,7 @@ $("#menuBtn").addEventListener("click", e => { e.stopPropagation(); setMenu($("#
 document.addEventListener("click", e => { if (!e.target.closest(".menu-wrap")) setMenu(false); });
 document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("#menu").hidden){ setMenu(false); $("#menuBtn").focus(); } });
 $("#home").addEventListener("click", e => { e.preventDefault(); setMenu(false); show("pick"); try { history.replaceState(null, "", "#pick"); } catch {} });
-document.querySelectorAll("nav.tabs a").forEach(a => a.addEventListener("click", e => { e.preventDefault(); setMenu(false); show(a.dataset.view); try { history.replaceState(null, "", "#" + a.dataset.view); } catch {} }));
+document.querySelectorAll("nav.tabs a[data-view]").forEach(a => a.addEventListener("click", e => { e.preventDefault(); setMenu(false); show(a.dataset.view); try { history.replaceState(null, "", "#" + a.dataset.view); } catch {} }));
 document.addEventListener("click", e => {
   const b = e.target.closest("button"); if (!b) return;
   if (b.closest('.fg[data-dragged]')) return;
