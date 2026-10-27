@@ -40,6 +40,6 @@ module.exports = async (req, res) => {
   } catch (e) {
     if (e instanceof NoDatabase) return res.status(503).json({ error: "Accounts aren't switched on yet: the site's database isn't connected." });
     console.error("auth failed:", e);
-    res.status(500).json({ error: "Something went wrong. Try again." });
+    res.status(500).json({ error: "Something went wrong. Try again. (" + String(e && e.message || e).slice(0, 80) + ")" });
   }
 };
