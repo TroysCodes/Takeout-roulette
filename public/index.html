@@ -334,6 +334,10 @@ body{margin:0}
   background:color-mix(in srgb,var(--bg) 86%,transparent);-webkit-backdrop-filter:blur(16px) saturate(1.3);backdrop-filter:blur(16px) saturate(1.3);box-shadow:0 1px 0 var(--line),0 10px 24px -20px rgba(22,41,59,.35)}
 a.brand{text-decoration:none;color:var(--fg)}
 .menu-wrap{position:relative}
+.go-spin{margin-left:auto;margin-right:8px;border:0;border-radius:999px;padding:9px 14px;font-weight:800;font-size:15px;background:var(--chili);color:var(--chili-ink);box-shadow:var(--shadow-sm);white-space:nowrap}
+.go-spin:hover{filter:brightness(1.05)}
+@media (max-width:400px){.topbar.spin-on .brand{font-size:19px;gap:6px}.go-spin{margin-right:6px}}
+@media (max-width:480px){.topbar.spin-on #menuNow,.topbar.spin-on .menu-btn .chev{display:none}.topbar.spin-on .menu-btn{padding:9px 11px}.go-spin{padding:9px 12px}}
 .menu-btn{display:inline-flex;align-items:center;gap:7px;border:0;border-radius:999px;padding:9px 12px 9px 14px;font-weight:700;font-size:15px;background:var(--surface);box-shadow:var(--shadow-sm),inset 0 0 0 1.5px var(--line)}
 .menu-btn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
 .menu-btn .chev{transition:transform .2s}
@@ -358,6 +362,7 @@ nav.tabs .acct-who b{display:inline-block;margin-left:6px;background:var(--sun);
   <header class="topbar">
     <a class="brand" href="#pick" id="home" aria-label="Takeout Roulette, home"><i class="mark" aria-hidden="true"></i>Takeout <span>Roulette</span></a>
     <div class="status" id="status" hidden>Saved on this device</div>
+    <button class="go-spin" id="goSpin" type="button" hidden>🎡 Spin</button>
     <div class="menu-wrap">
       <button class="menu-btn" id="menuBtn" type="button" aria-expanded="false" aria-controls="menu"><svg class="burger" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg><span id="menuNow">Menu</span><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
       <nav class="tabs" id="menu" aria-label="Sections" hidden>
@@ -861,6 +866,7 @@ function spin(){
     local.save(); render();
     const t = $("#ticket"); t.classList.remove("landed"); void t.offsetWidth; t.classList.add("landed");
     if (!calm()) confetti();
+    setTimeout(showTicket, 80);
   };
   if (calm() || pool.length < 2){ land(); return; }
   // Shuffle names on the ticket like a slot machine, slowing down before it lands
@@ -876,6 +882,13 @@ function spin(){
   };
   tick();
   t.scrollIntoView({block: "nearest", behavior: "smooth"});
+}
+// After a spin lands, scroll so the whole ticket and its buttons are on screen (top first if it's taller than the screen)
+function showTicket(){
+  const t = $("#ticket"); if (!t || !t.offsetHeight) return;
+  const r = t.getBoundingClientRect(), head = ($(".topbar") || $("header"))?.offsetHeight || 64;
+  const y = r.height + head + 24 > innerHeight ? scrollY + r.top - head - 8 : scrollY + r.bottom - innerHeight + 16;
+  if (Math.abs(y - scrollY) > 4) window.scrollTo({top: Math.max(0, y), behavior: calm() ? "auto" : "smooth"});
 }
 function confetti(){
   const c = $("#confetti"), ctx = c.getContext && c.getContext("2d"); if (!ctx) return;
@@ -947,6 +960,7 @@ function applyTheme(t){
   const m = document.querySelector('meta[name="theme-color"]'); if (m) m.content = getComputedStyle(document.body).backgroundColor;
 }
 applyTheme(prefs.get("theme"));
+$("#goSpin").addEventListener("click", () => { setMenu(false); show("pick"); try { history.replaceState(null, "", "#pick"); } catch {} setTimeout(() => $("#go").scrollIntoView({block: "center", behavior: calm() ? "auto" : "smooth"}), 60); });
 $("#themeBtn").addEventListener("click", () => { const t = isDark() ? "light" : "dark"; prefs.set("theme", t); applyTheme(t); });
 function bindSwipe(fg){
   let x0 = 0, y0 = 0, dx = 0, mode = null, pid = null;
@@ -1071,6 +1085,7 @@ function render(){
 
   renderExplore();
   for (const v of VIEWS) $("#view-"+v).hidden = S.view !== v;
+  $("#goSpin").hidden = S.view === "pick"; $(".topbar").classList.toggle("spin-on", S.view !== "pick");
   document.querySelectorAll("nav.tabs a").forEach(a => { if (a.dataset.view === S.view) a.setAttribute("aria-current","page"); else a.removeAttribute("aria-current"); });
   $("#menuNow").textContent = {lists:"My lists", explore:"Explore", map:"Map"}[S.view] || "Menu";
 }
