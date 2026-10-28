@@ -120,7 +120,7 @@ function paintMenu(){
   const svgUser = `<svg viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/></svg>`;
   const html = A.user
     ? `<div class="acct-item acct-who">${svgUser}<span>${esc(A.user.email)}${A.user.founder ? "<b>Founder</b>" : ""}</span></div>
-       ${A.user.founder ? `<a class="acct-item" href="/admin"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Founder dashboard</a>` : ""}
+       <a class="acct-item" href="/profile"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="10" r="3"/><path d="M6.5 18.5a6.5 6.5 0 0 1 11 0"/></svg>Profile${A.user.founder ? " · founder tools" : ""}</a>
        <button class="acct-item" type="button" id="acctOut"><svg viewBox="0 0 24 24"><path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10"/></svg>Sign out</button>`
     : `<button class="acct-item" type="button" id="acctIn">${svgUser}Sign in / Create account</button>`;
   nav.insertAdjacentHTML("beforeend", html);

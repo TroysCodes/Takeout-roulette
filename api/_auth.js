@@ -8,7 +8,12 @@ const DAYS = 30;
 const emailOk = v => typeof v === "string" && v.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v);
 const normEmail = v => String(v || "").trim().toLowerCase();
 const uidOf = email => crypto.createHash("sha256").update("tr:" + email).digest("hex").slice(0, 24);
-const isFounder = email => !!process.env.FOUNDER_EMAIL && normEmail(process.env.FOUNDER_EMAIL) === email;
+// Troy's account is the founder. Stored as a hash so the email isn't in the public code.
+// FOUNDER_EMAIL in Vercel can name another founder too.
+const FOUNDER_HASH = "b08f4ba86192bb6f791f0f2309de34d47c264de8455946ec7ccb6a5c1c3f54e0";
+const isFounder = email => !!email && (
+  crypto.createHash("sha256").update(email).digest("hex") === FOUNDER_HASH ||
+  (!!process.env.FOUNDER_EMAIL && normEmail(process.env.FOUNDER_EMAIL) === email));
 
 function hashPassword(pw, salt = crypto.randomBytes(16).toString("hex")) {
   const hash = crypto.scryptSync(String(pw), salt, 64).toString("hex");
