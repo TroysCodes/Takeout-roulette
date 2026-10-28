@@ -342,6 +342,9 @@ nav.tabs{position:absolute;right:0;top:calc(100% + 8px);left:auto;bottom:auto;mi
 @keyframes drop{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
 nav.tabs a{flex-direction:row;justify-content:flex-start;gap:12px;padding:12px 14px;border-radius:12px;font-size:16px;color:var(--fg)}
 nav.tabs a:hover{background:var(--sunk)}
+nav.tabs .theme-btn{display:flex;align-items:center;gap:12px;padding:12px 14px;border:0;border-top:1px solid var(--line);border-radius:0 0 12px 12px;margin-top:4px;background:transparent;font:inherit;font-size:16px;font-weight:700;color:var(--fg);text-align:left;cursor:pointer}
+nav.tabs .theme-btn:hover{background:var(--sunk)}
+nav.tabs .theme-btn svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 @media (prefers-reduced-motion:reduce){nav.tabs{animation:none}}
 nav.tabs .acct-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;font-size:15px;font-weight:700;color:var(--fg);text-decoration:none;border:0;background:none;text-align:left;width:100%}
 nav.tabs .acct-item svg{width:22px;height:22px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
@@ -361,6 +364,7 @@ nav.tabs .acct-who b{display:inline-block;margin-left:6px;background:var(--sun);
         <a href="#pick" data-view="pick"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7"/><path d="M6 9.5V20h12V9.5"/><path d="M10 20v-5h4v5"/></svg>Home</a>
         <a href="#lists" data-view="lists"><svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/></svg>My lists</a>
         <a href="#explore" data-view="explore"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></svg>Explore</a>
+        <button type="button" class="theme-btn" id="themeBtn"><svg viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg><span id="themeLbl">Dark mode</span></button>
       </nav>
     </div>
   </header>
@@ -370,7 +374,7 @@ nav.tabs .acct-who b{display:inline-block;margin-left:6px;background:var(--sun);
     <div class="hero">
       <p class="q">What's for <mark id="dinner" role="button" tabindex="0" aria-label="Dinner: jump to the spin wheel">dinner</mark>?</p>
       <div class="step">
-        <p class="step-h"><span class="num n1">1</span>Pick a food <em>(or skip it)</em></p>
+        <p class="step-h"><span class="num n1">1</span>Pick a food</p>
         <div class="foods" id="foods" role="group" aria-label="Food"></div>
         <div class="crave">
           <div class="box"><input id="crave" type="search" list="cuisineNames" placeholder="Or type any food…" autocomplete="off" enterkeyhint="go" aria-label="Type a food">
@@ -933,6 +937,17 @@ $("#toastUndo").addEventListener("click", () => { const f = undoFn; undoFn = nul
 
 /* ---------- Swipe left to delete ---------- */
 const prefs = { get(k){ try { return localStorage.getItem("takeout-pref-" + k); } catch { return null; } }, set(k, v){ try { localStorage.setItem("takeout-pref-" + k, v); } catch {} } };
+// Light / dark switch in the Menu; the choice is remembered on this device
+const isDark = () => getComputedStyle(document.documentElement).colorScheme.includes("dark");
+function applyTheme(t){
+  if (t) document.documentElement.dataset.theme = t;
+  const dark = isDark();
+  $("#themeLbl").textContent = dark ? "Light mode" : "Dark mode";
+  $("#themeBtn svg").innerHTML = dark ? '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>' : '<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>';
+  const m = document.querySelector('meta[name="theme-color"]'); if (m) m.content = getComputedStyle(document.body).backgroundColor;
+}
+applyTheme(prefs.get("theme"));
+$("#themeBtn").addEventListener("click", () => { const t = isDark() ? "light" : "dark"; prefs.set("theme", t); applyTheme(t); });
 function bindSwipe(fg){
   let x0 = 0, y0 = 0, dx = 0, mode = null, pid = null;
   fg.addEventListener("pointerdown", e => {
