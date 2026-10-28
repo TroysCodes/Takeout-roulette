@@ -19,7 +19,10 @@ document.head.insertAdjacentHTML("beforeend", `<style>
 .gate .agree input{appearance:auto;-webkit-appearance:checkbox;width:20px;height:20px;flex:none;margin:1px 0 0;padding:0;box-shadow:none;accent-color:var(--chili);border-radius:4px}
 .gate .agree a{color:inherit;font-weight:700}
 .pw-eye:focus-visible{outline:2px solid var(--chili);outline-offset:2px}
+.fb-foot{text-align:center;padding:8px 16px 40px}.fb-foot a{display:inline-block;font-weight:700;font-size:15px;color:var(--fg);background:var(--surface);box-shadow:var(--shadow-sm),inset 0 0 0 1.5px var(--line);border-radius:999px;padding:10px 18px;text-decoration:none}
 </style>`);
+// "Give feedback" at the bottom of every page
+(document.querySelector("main") || document.body).insertAdjacentHTML("afterend", `<footer class="fb-foot"><a href="/feedback">💬 Give feedback</a></footer>`);
 document.body.insertAdjacentHTML("beforeend", `
 <dialog class="gate" id="acct" aria-labelledby="acctH">
   <form id="acctForm" novalidate>

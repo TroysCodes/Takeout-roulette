@@ -54,6 +54,7 @@ q{font-style:italic;color:var(--muted)}
 textarea{width:100%;min-height:140px;margin-top:12px;font:14px ui-monospace,monospace;border-radius:12px;padding:10px;border:2px solid var(--line);background:var(--bg);color:var(--fg)}
 .go-spin{background:var(--blue,#4FA8F0);color:#0E2A45;padding:10px 18px;border-radius:999px;font-weight:800;box-shadow:0 2px 8px rgba(14,42,69,.15)}
 .go-spin:hover{color:#0E2A45;filter:brightness(1.05)}
+.fb-foot{text-align:center;padding:8px 16px 40px}.fb-foot a{display:inline-block;font:700 15px Figtree,system-ui,sans-serif;color:#0E2A45;background:#fff;border:2px solid #EEE6D8;border-radius:999px;padding:10px 18px;text-decoration:none}.fb-foot a:hover{border-color:#4FA8F0}
 </style>
 </head>
 <body>
@@ -79,6 +80,7 @@ textarea{width:100%;min-height:140px;margin-top:12px;font:14px ui-monospace,mono
   <div class="tabs" id="tabs" role="tablist" hidden>
     <button type="button" role="tab" data-tab="list" aria-selected="true">📬 Email sign-ups</button>
     <button type="button" role="tab" data-tab="rv" aria-selected="false">⭐ Reviews</button>
+    <button type="button" role="tab" data-tab="fbx" aria-selected="false">💬 Feedback</button>
   </div>
   <div class="box" id="list" hidden>
     <div class="head"><strong>Sign-ups</strong><span class="count" id="count"></span></div>
@@ -88,6 +90,12 @@ textarea{width:100%;min-height:140px;margin-top:12px;font:14px ui-monospace,mono
     </div>
     <textarea id="txt" readonly hidden aria-label="All emails"></textarea>
     <ul id="rows"></ul>
+  </div>
+  <div class="box" id="fbx" hidden>
+    <div class="head"><strong>Feedback</strong><span class="count" id="fbCount"></span></div>
+    <p class="note">Messages people sent from the Give feedback page. Only you can see these.</p>
+    <div class="row" style="margin-top:0"><button class="green" id="fbCsv" type="button">⬇ Download feedback (.csv)</button></div>
+    <ul id="fbRows"></ul>
   </div>
   <div class="box" id="rv" hidden>
     <div class="head"><strong>Diner reviews</strong><span class="count" id="rvCount"></span></div>
@@ -101,6 +109,7 @@ textarea{width:100%;min-height:140px;margin-top:12px;font:14px ui-monospace,mono
   </div>
   </section>
 </main>
+<footer class="fb-foot"><a href="/feedback">💬 Give feedback</a></footer>
 <script>
 (() => {
 const $ = s => document.querySelector(s);
@@ -113,7 +122,7 @@ async function load(){
   const out = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(out.error || "Something went wrong");
   ROWS = out.rows || [];
-  $("#founder").hidden = false; $("#tabs").hidden = false; showTab("list"); loadReviews(); loadVisits();
+  $("#founder").hidden = false; $("#tabs").hidden = false; showTab("list"); loadReviews(); loadVisits(); loadFeedback();
   // Owner gets unlimited spins on this device (the app checks this flag)
   try { localStorage.setItem("takeout-pref-owner", "1"); } catch {}
   $("#count").textContent = ROWS.length + (ROWS.length === 1 ? " person" : " people");
@@ -128,7 +137,21 @@ async function loadVisits(){
   $("#vStats").innerHTML = `<div><b>${s.thisMonth.visitors}</b><span>visitors this month</span></div><div><b>${s.today}</b><span>visitors today</span></div><div><b>${s.thisMonth.views}</b><span>visits this month</span></div><div><b>${s.lastMonth.visitors}</b><span>visitors in ${mon(s.last)}</span></div><div><b>${s.accounts}</b><span>accounts</span></div>`;
   $("#visits").hidden = false;
 }
-function showTab(t){ ["list","rv"].forEach(x => $("#" + x).hidden = x !== t); document.querySelectorAll("[data-tab]").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === t))); }
+let FB = [];
+async function loadFeedback(){
+  const r = await fetch("/api/feedback", {credentials: "same-origin", headers: PW ? {Authorization: "Bearer " + PW} : {}}).catch(() => null);
+  if (!r || !r.ok) return;
+  FB = (await r.json()).rows || [];
+  $("#fbCount").textContent = FB.length + (FB.length === 1 ? " message" : " messages");
+  $("#fbCsv").disabled = !FB.length;
+  $("#fbRows").innerHTML = FB.length ? FB.map(x => { const d = new Date(x.at); return `<li class="fbi"><span><b>${esc(x.subject || "(no subject)")}</b><br><span style="white-space:pre-wrap">${esc(x.message)}</span>${x.email ? `<br><small>From ${esc(x.email)}</small>` : ""}</span><span style="display:flex;flex-direction:column;align-items:flex-end;gap:6px"><small>${isNaN(d) ? "" : d.toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"})}</small><button class="plain" type="button" data-fbdel="${esc(x.id)}" style="padding:4px 10px;font-size:12px">Delete</button></span></li>`; }).join("") : "<li>No feedback yet.</li>";
+}
+document.addEventListener("click", async e => {
+  const b = e.target.closest("[data-fbdel]"); if (!b || !confirm("Delete this feedback?")) return;
+  await fetch("/api/feedback?id=" + encodeURIComponent(b.dataset.fbdel), {method: "DELETE", credentials: "same-origin", headers: PW ? {Authorization: "Bearer " + PW} : {}}).catch(() => {});
+  loadFeedback();
+});
+function showTab(t){ ["list","rv","fbx"].forEach(x => $("#" + x).hidden = x !== t); document.querySelectorAll("[data-tab]").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === t))); }
 document.querySelectorAll("[data-tab]").forEach(b => b.addEventListener("click", () => showTab(b.dataset.tab)));
 const V = {loved:"😍 Loved it", ok:"🙂 It was OK", nope:"👎 Not for me"};
 let REVS = [];
@@ -155,6 +178,8 @@ function saveCsv(name, csv){
   a.download = `${name}-${new Date().toISOString().slice(0,10)}.csv`;
   a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
+$("#fbCsv").addEventListener("click", () => saveCsv("takeout-roulette-feedback",
+  "subject,feedback,email,date\n" + FB.map(x => [x.subject || "", x.message || "", x.email || "", x.at || ""].map(cell).join(",")).join("\n") + "\n"));
 $("#rvCsv").addEventListener("click", () => saveCsv("takeout-roulette-reviews",
   "restaurant,place_id,rating,comment,date\n" + REVS.map(x => [x.name || "", x.placeId, V[x.verdict].replace(/^\S+\s/, ""), x.comment || "", x.at || ""].map(cell).join(",")).join("\n") + "\n"));
 const cell = v => /[",\n]/.test(v) ? `"${String(v).replace(/"/g,'""')}"` : String(v);

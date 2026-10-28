@@ -46,6 +46,7 @@ q{font-style:italic;color:var(--muted)}
 textarea{width:100%;min-height:140px;margin-top:12px;font:14px ui-monospace,monospace;border-radius:12px;padding:10px;border:2px solid var(--line);background:var(--bg);color:var(--fg)}
 .go-spin{background:var(--blue,#4FA8F0);color:#0E2A45;padding:10px 18px;border-radius:999px;font-weight:800;box-shadow:0 2px 8px rgba(14,42,69,.15)}
 .go-spin:hover{color:#0E2A45;filter:brightness(1.05)}
+.fb-foot{text-align:center;padding:8px 16px 40px}.fb-foot a{display:inline-block;font:700 15px Figtree,system-ui,sans-serif;color:#0E2A45;background:#fff;border:2px solid #EEE6D8;border-radius:999px;padding:10px 18px;text-decoration:none}.fb-foot a:hover{border-color:#4FA8F0}
 </style>
 </head>
 <body>
@@ -93,6 +94,7 @@ textarea{width:100%;min-height:140px;margin-top:12px;font:14px ui-monospace,mono
     <h3>Latest reviews</h3><ul id="rvAll"></ul>
   </div>
 </main>
+<footer class="fb-foot"><a href="/feedback">💬 Give feedback</a></footer>
 <script>
 (() => {
 const $ = s => document.querySelector(s);
