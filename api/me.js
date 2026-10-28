@@ -10,6 +10,19 @@ async function spinsLeft(me) {
   return Math.max(0, DAILY - used);
 }
 
+// One time: add the places the founder has already been to as unrated visits
+async function seedFounderTried(me, items) {
+  const have = new Set(items.filter(i => i.list === "been" || i.list === "tried").map(i => i.placeId));
+  const at = new Date().toISOString();
+  require("./_founder_tried").forEach(([placeId, name, address], n) => {
+    if (have.has(placeId)) return;
+    items.push({ id: "seed" + n.toString(36) + Date.now().toString(36), name, place: "", address, placeId, list: "been", visitedAt: at, addedAt: at });
+  });
+  await redis("SET", "userdata:" + me.uid, JSON.stringify({ items, at }));
+  await redis("SET", "seeded:tried1:" + me.uid, at);
+  return items;
+}
+
 module.exports = async (req, res) => {
   res.setHeader("Cache-Control", "no-store");
   try {
@@ -17,7 +30,9 @@ module.exports = async (req, res) => {
     if (!me) return res.status(401).json({ error: "Not signed in" });
     if (req.method === "GET") {
       const raw = await redis("GET", "userdata:" + me.uid);
-      return res.status(200).json({ items: raw ? JSON.parse(raw).items || [] : [], spinsLeft: await spinsLeft(me) });
+      let items = raw ? JSON.parse(raw).items || [] : [];
+      if (me.founder && !(await redis("GET", "seeded:tried1:" + me.uid))) items = await seedFounderTried(me, items);
+      return res.status(200).json({ items, spinsLeft: await spinsLeft(me) });
     }
     if (req.method === "PUT") {
       const items = (req.body || {}).items;
