@@ -292,6 +292,8 @@ nav.tabs a[aria-current="page"]{color:var(--chili-ink);background:var(--chili-so
 .go.hello{animation:hello .9s cubic-bezier(.3,1.6,.5,1)}
 @keyframes hello{0%{scale:1}35%{scale:1.1}60%{scale:.96}100%{scale:1}}
 .card .tried{align-self:flex-start;font-size:12px;font-weight:700;border-radius:999px;padding:3px 10px;background:var(--sunk);color:var(--muted)}
+.card-rate{display:flex;flex-direction:column;gap:6px;border-top:1px dashed var(--line);padding-top:8px}
+.card-rate .rv-c input{width:100%}
 .been-box{background:var(--surface);box-shadow:var(--shadow-sm);border-radius:20px;padding:14px 16px;margin:0 0 14px;display:flex;flex-direction:column;gap:10px}
 .been-sum{margin:0;font-size:15px;font-weight:600}
 .been-sum b{font:800 22px/1 var(--display)}
@@ -580,12 +582,23 @@ function toggleTried(pid){
   gone.forEach(i => S.store.del(i.id).catch(()=>{}));
   toast(`Marked ${gone[0].name} as not been yet`, () => { gone.forEach(i => { if (!S.items.some(x => x.id === i.id)){ S.items.push(i); S.store.put(i).catch(()=>{}); } }); render(); });
 }
+// Explore card rating: rates the latest visit (makes one if the place is only in "Tried, not for me")
+function rateFromCard(pid, v){
+  const visits = S.items.filter(i => i.placeId === pid && i.list === "been").sort((a, b) => (b.visitedAt || "").localeCompare(a.visitedAt || ""));
+  let it = visits.find(i => i.verdict) || visits[0];
+  if (!it){
+    const p = S.places.find(x => x.id === pid); if (!p) return;
+    it = {id: uid(), name: p.name, place: "", address: p.address, placeId: pid, list: "been", visitedAt: new Date().toISOString(), addedAt: new Date().toISOString()};
+    S.items.push(it); S.store.put(it).catch(()=>{});
+  }
+  rateVisit(it.id, v);
+}
 // Saves a visit to Places I've been (no rating; rate it there)
 function markTried(pid){
   const p = S.places.find(x => x.id === pid); if (!p) return;
   const it = {id: uid(), name: p.name, place: "", address: p.address, placeId: pid, list: "been", visitedAt: new Date().toISOString(), addedAt: new Date().toISOString()};
   S.items.push(it); render(); S.store.put(it).catch(()=>{});
-  toast(`Marked ${p.name} as been there. Rate it in My lists.`, () => { S.items = S.items.filter(i => i.id !== it.id); render(); S.store.del(it.id).catch(()=>{}); });
+  toast(`Marked ${p.name} as been there. Rate it right on the card.`, () => { S.items = S.items.filter(i => i.id !== it.id); render(); S.store.del(it.id).catch(()=>{}); });
 }
 function confirmPick(){
   const p = S.pick; if (!p || p.confirmed) return;
@@ -636,8 +649,9 @@ function setReviews(rows){
   m.forEach(s => s.comments.sort((a,b) => b.at.localeCompare(a.at)));
   S.reviews = m; render(); renderReviewAdmin();
 }
-function crowd(pid, max){
-  const s = S.reviews && S.reviews.get(pid); if (!s) return "";
+function crowd(pid, max, always){
+  const s = S.reviews && S.reviews.get(pid);
+  if (!s) return always ? `<div class="crowd"><b>Takeout Roulette diners</b> <small>No ratings yet. Been here? Be the first.</small></div>` : "";
   const parts = [["loved","😍"],["ok","🙂"],["nope","👎"]].filter(([k]) => s[k]).map(([k, e]) => `${e} ${s[k]}`).join(" · ");
   const quotes = s.comments.slice(0, max).map(c => `<q>${esc(c.c)}</q>`).join("");
   return `<div class="crowd"><b>Takeout Roulette diners</b> <span>${parts}</span> <small>(${s.n} rating${s.n === 1 ? "" : "s"})</small>${quotes}</div>`;
@@ -975,7 +989,7 @@ function renderExplore(){
   S.items.forEach(i => {
     if (!i.placeId) return;
     if (i.list === "tried" && !tried.has(i.placeId)) tried.set(i.placeId, {verdict: "nope"});
-    if (i.list === "been"){ const t = tried.get(i.placeId); if (!t || (i.verdict && (!t.at || (i.visitedAt || "") > t.at))) tried.set(i.placeId, {verdict: i.verdict, at: i.visitedAt}); }
+    if (i.list === "been"){ const t = tried.get(i.placeId); if (!t || !t.id || (i.verdict && (!t.at || (i.visitedAt || "") > t.at))) tried.set(i.placeId, {verdict: i.verdict, at: i.visitedAt, id: i.id, comment: i.comment}); }
   });
   document.querySelectorAll("[data-tried]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.tried === S.f.tried)));
   const nYes = S.places.filter(p => tried.has(p.id)).length, nAll = S.places.length;
@@ -1002,7 +1016,9 @@ function renderExplore(){
     return `<article class="card">
       <div class="top"><span class="cname"><b>${esc(p.name)}</b>${fmark}</span><span class="price" title="Price level">${dollars(p)}</span></div>${triedTag}
       <div class="sub">${p.rating == null ? `<span>New spot, no Google rating yet</span>` : `<span class="stars">${p.rating.toFixed(1)}</span>${p.reviews ? `<span>${p.reviews.toLocaleString()} Google reviews</span>` : `<span>on Google</span>`}`}<span>${esc(p.cuisine)}</span><span>${esc(areaOf(p))}</span>${truckUrl(p) ? `<span class="truck">🚚 Food truck</span>` : ""}</div>
-      <div class="addr">${truckUrl(p) ? "Home base: " : ""}${esc(p.address)}</div>${crowd(p.id, 2)}
+      <div class="addr">${truckUrl(p) ? "Home base: " : ""}${esc(p.address)}</div>${crowd(p.id, 3, true)}${t ? `<div class="card-rate">
+        <div class="acts-row rate" role="group" aria-label="Rate ${esc(p.name)}"><span class="rate-q">${t.verdict ? "Your rating:" : "How was it?"}</span>${RATES.map(([v, label]) =>
+          `<button class="ib${t.verdict === v ? " on" : ""}" type="button" data-cardrate="${p.id}|${v}" aria-pressed="${t.verdict === v}">${label}</button>`).join("")}</div>${t.verdict && t.id ? `<div class="rv-c"><input type="text" data-cmt="${t.id}" value="${esc(t.comment || "")}" maxlength="200" placeholder="Leave a comment others can read (optional)" aria-label="Comment about ${esc(p.name)}" enterkeyhint="done"><small>Shared with everyone, without your name.</small></div>` : ""}</div>` : ""}
       <div class="links">${btns}${truckUrl(p) ? `<a class="btn dark" href="${esc(truckUrl(p))}" target="_blank" rel="noopener">Where's the truck today? ↗</a>` : `<a class="btn" href="${esc(mapsUrl(p))}" target="_blank" rel="noopener">Map ↗</a>`}</div>
     </article>`;
   }).join("") : `<p class="empty-note">No places match. Try another search or price.</p>`;
@@ -1047,6 +1063,7 @@ document.addEventListener("click", e => {
   else if (d.toggletried) toggleTried(d.toggletried);
   else if (d.price !== undefined && b.closest("#view-explore")){ S.f.price = +d.price; renderExplore(); }
   else if (d.rate){ const [id, v] = d.rate.split("|"); rateVisit(id, v); }
+  else if (d.cardrate){ const [pid, v] = d.cardrate.split("|"); rateFromCard(pid, v); }
   else if (d.loved) tried(d.loved, true);
   else if (d.meh) tried(d.meh, false);
   else if (d.retry) move(d.retry, "try");
