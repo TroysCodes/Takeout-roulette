@@ -97,7 +97,7 @@ h3{font-family:var(--display);font-weight:700;font-size:20px;margin:0}
 .crave .box{position:relative}
 .crave input{width:100%;border:2px solid transparent;background:var(--surface);box-shadow:var(--shadow-sm);border-radius:999px;padding:12px 46px 12px 20px;font-size:16px;transition:border-color .15s}
 .crave input:focus{border-color:var(--chili);outline:none}
-.where{margin-top:10px}
+.where{margin-top:2px}
 .where .pin{background:none;box-shadow:none;padding:0;width:auto;height:auto;border-radius:0;z-index:1;position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:16px;pointer-events:none}
 .crave.where input{padding-left:44px}
 .where-n{font-size:12.5px;color:var(--muted);text-align:center}
@@ -379,11 +379,6 @@ nav.tabs .acct-who b{display:inline-block;margin-left:6px;background:var(--sun);
       </div>
       <div class="step">
         <p class="step-h"><span class="num n2">2</span>Pick from where?</p>
-        <div class="seg" role="group" aria-label="Pick from">
-          <button type="button" data-pool="all" aria-pressed="true">Everywhere</button>
-          <button type="button" data-pool="both" aria-pressed="false">My lists</button>
-          <button type="button" data-pool="fav" aria-pressed="false">Favorites</button>
-        </div>
         <div class="crave where">
           <div class="box"><span class="pin" aria-hidden="true">📍</span><input id="where" type="search" list="whereNames" placeholder="Anywhere, or type an area or street" autocomplete="off" enterkeyhint="go" aria-label="Type a location, like Dundas or Locke St">
           <button class="clear" type="button" id="whereClear" aria-label="Clear location" hidden>×</button></div>
@@ -1179,7 +1174,7 @@ document.addEventListener("keydown", e => {
 /* ---------- Boot ---------- */
 const saved = local.load();
 S.items = Array.isArray(saved.items) ? saved.items : [];
-S.pool = saved.poolV === 2 && ["both","fav","all"].includes(saved.pool) ? saved.pool : "all";
+S.pool = "all"; // Step 2 is just the location box now (Troy, 2026-10-28)
 S.order = saved.order || 0;
 S.view = VIEWS.includes(location.hash.slice(1)) ? location.hash.slice(1) : VIEWS.includes(prefs.get("view")) ? prefs.get("view") : "pick";
 S.where = prefs.get("where") || ""; $("#where").value = S.where;
