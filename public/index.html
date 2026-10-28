@@ -108,6 +108,8 @@ h3{font-family:var(--display);font-weight:700;font-size:20px;margin:0}
   color:var(--chili-ink);font-family:var(--display);font-weight:900;font-size:clamp(40px,12vw,54px);letter-spacing:-.01em;text-transform:uppercase;
   display:grid;place-items:center;transition:transform .12s;animation:turn 24s linear infinite}
 @keyframes turn{to{--a:360deg}}
+.go .go-l{display:block;font-style:normal}
+.go.again .go-l{font-size:.66em;line-height:1}
 .go small{display:block;font-family:var(--body);font-size:13px;font-weight:600;letter-spacing:.01em;margin-top:4px;line-height:1.25;text-transform:none}
 .go small b{display:block;font-family:var(--display);font-weight:900;font-size:clamp(30px,8.5vw,38px);letter-spacing:-.02em;line-height:1;font-variant-numeric:tabular-nums}
 .go small i{font-style:normal;opacity:.8}
@@ -356,7 +358,7 @@ nav.tabs .acct-who b{display:inline-block;margin-left:6px;background:var(--sun);
       </div>
       <p class="step-h"><span class="num n3">3</span>Press the big button!</p>
       <datalist id="cuisineNames"></datalist>
-      <button class="go" id="go" type="button"><span>Spin!<small id="goSub">Pick for me</small></span></button>
+      <button class="go" id="go" type="button"><span><em class="go-l" id="goLabel">Spin!</em><small id="goSub">Pick for me</small></span></button>
       <div class="ticket" id="ticket" aria-live="polite"></div>
     </div>
     <canvas id="confetti" aria-hidden="true"></canvas>
@@ -713,7 +715,7 @@ function spin(){
   const g = $("#go"); g.classList.remove("spin"); void g.offsetWidth; g.classList.add("spin");
   const land = () => {
     spinning = false; $("#go").disabled = false;
-    S.order += 1; S.pick = {...it, at: new Date()};
+    S.order += 1; S.pick = {...it, at: new Date()}; S.addOpen = false;
     local.save(); render();
     const t = $("#ticket"); t.classList.remove("landed"); void t.offsetWidth; t.classList.add("landed");
     if (!calm()) confetti();
@@ -857,14 +859,19 @@ function render(){
   $("#go").classList.toggle("idle", !S.pick && pool.length > 0 && left > 0);
   const what = S.places.length ? (pool.length === 1 ? "restaurant" : "restaurants") : (pool.length === 1 ? "option" : "options");
   const tally = SPINS.owner ? "" : `<i class="left">${left} of ${DAILY} spins left today</i>`;
+  // After a spin the big button becomes "Spin again" and shows the spins left
+  const again = !!S.pick && left > 0 && pool.length > 0;
+  $("#goLabel").textContent = again ? "Spin again" : "Spin!";
+  $("#go").classList.toggle("again", again);
   $("#goSub").innerHTML = !left ? `<i>No spins left today</i><i class="left">Come back tomorrow!</i>`
+    : again ? (SPINS.owner ? `<i class="left">Unlimited spins</i>` : `<b>${left}</b><i>${left === 1 ? "spin" : "spins"} left today</i>`)
     : pool.length ? `<b>${pool.length.toLocaleString()}</b><i>${what} to choose from</i>${tally}`
     : `<i>${S.craving.trim() ? `No ${esc((FOODS.find(f => f[1] === S.craving) || [S.craving.trim()])[0])} spots here` : S.pool === "all" && S.placesState === "loading" ? "Loading restaurants…" : "Add to your lists first"}</i>`;
   $("#craveClear").hidden = !$("#crave").value;
   renderFoods();
   const cz = [...new Set(S.places.map(p => p.cuisine))].sort().map(c => `<option value="${esc(c)}"></option>`).join("");
   if ($("#cuisineNames").innerHTML !== cz) $("#cuisineNames").innerHTML = cz;
-  $("#go").setAttribute("aria-label", pool.length ? `Spin: pick from ${pool.length} ${what}` : "Spin");
+  $("#go").setAttribute("aria-label", again ? `Spin again: ${SPINS.owner ? "unlimited spins" : `${left} left today`}` : pool.length ? `Spin: pick from ${pool.length} ${what}` : "Spin");
 
   const t = $("#ticket");
   if (S.pick){
@@ -875,8 +882,14 @@ function render(){
     t.innerHTML = `<div class="meta"><span>ORDER #${String(S.order).padStart(3,"0")}</span><span>${at.toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"})} · ${at.toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"})}</span></div>
       <span class="tag ${p.list === "all" ? "tried" : p.list}">${TAG[p.list] || ""}</span>
       <p class="dish">${esc(p.name)}</p>${truckUrl(placeOf(p)) ? `<p class="where">🚚 Food truck, moves around. Home base: ${esc(p.address)}</p>` : (p.address || p.place) ? `<p class="where">${esc(p.address || p.place)}</p>` : ""}${(() => { const pl = placeOf(p); return pl ? `<p class="where">${pl.rating == null ? "New spot, no Google rating yet" : `★ ${pl.rating.toFixed(1)} on Google`} · ${"$".repeat(pl.price)}${pl.priceSource === "est" ? " (est.)" : ""} · ${esc(pl.cuisine)}</p>` : ""; })()}${p.via ? `<p class="where">Because you listed ${esc(p.via)}</p>` : ""}${p.placeId ? crowd(p.placeId, 1) : ""}
-      <div class="acts">${truckUrl(placeOf(p)) ? `<a class="btn dark" href="${esc(truckUrl(placeOf(p)))}" target="_blank" rel="noopener">Where's the truck today? ↗</a>` : `<a class="btn dark" href="${esc(mapsUrl(p))}" target="_blank" rel="noopener">Show me the map ↗</a>`}<button class="btn" type="button" id="again">Spin again</button>${
-        isTry && live && !p.confirmed ? `<button class="btn herb" type="button" data-loved="${p.itemId}">Tried it, loved it</button>` : p.placeId && !live ? `<button class="btn" type="button" data-addplace="${p.placeId}|fav">♥ Save to Favorites</button>` : ""
+      <div class="acts">${truckUrl(placeOf(p)) ? `<a class="btn dark" href="${esc(truckUrl(placeOf(p)))}" target="_blank" rel="noopener">Where's the truck today? ↗</a>` : `<a class="btn dark" href="${esc(mapsUrl(p))}" target="_blank" rel="noopener">Show me the map ↗</a>`}${
+        isTry && live && !p.confirmed ? `<button class="btn herb" type="button" data-loved="${p.itemId}">Tried it, loved it</button>` : p.placeId && !live ? (() => {
+          const inList = listed().find(i => i.placeId === p.placeId && i.list !== "been");
+          if (inList) return `<span class="btn in">In ${LABEL[inList.list]}</span>`;
+          return S.addOpen
+            ? `<button class="btn" type="button" data-addplace="${p.placeId}|fav">♥ Favorites</button><button class="btn" type="button" data-addplace="${p.placeId}|try">+ Want to try</button>`
+            : `<button class="btn" type="button" data-addlist="1">+ Add to list</button>`;
+        })() : ""
       }</div>${p.confirmed ? (() => { const L = calLinks(p, p.time); return `<div class="locked" role="status">
         <p class="lk-h">🎉 You're going to ${esc(p.name)}!</p>
         <p class="lk-s">Saved to <b>Places I've been</b>. Pick a time and add it to your calendar so you get a reminder with the address.</p>
@@ -963,7 +976,7 @@ document.addEventListener("click", e => {
   if (b.closest('.fg[data-dragged]')) return;
   const d = b.dataset;
   if (d.tipok){ prefs.set("swiped", "1"); render(); return; }
-  if (b.id === "again") spin();
+  if (d.addlist){ S.addOpen = true; render(); }
   else if (b.id === "confirm") confirmPick();
   else if (d.idea){ const [l, n] = d.idea.split("|"); add(l, n); }
   else if (d.addplace){ const [pid, l] = d.addplace.split("|"); addPlace(pid, l); }
