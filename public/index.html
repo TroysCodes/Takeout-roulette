@@ -97,6 +97,10 @@ h3{font-family:var(--display);font-weight:700;font-size:20px;margin:0}
 .crave .box{position:relative}
 .crave input{width:100%;border:2px solid transparent;background:var(--surface);box-shadow:var(--shadow-sm);border-radius:999px;padding:12px 46px 12px 20px;font-size:16px;transition:border-color .15s}
 .crave input:focus{border-color:var(--chili);outline:none}
+.where{margin-top:10px}
+.where .pin{background:none;box-shadow:none;padding:0;width:auto;height:auto;border-radius:0;z-index:1;position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:16px;pointer-events:none}
+.crave.where input{padding-left:44px}
+.where-n{font-size:12.5px;color:var(--muted);text-align:center}
 .crave .clear{position:absolute;right:7px;top:50%;transform:translateY(-50%);border:0;background:var(--sunk);color:var(--muted);border-radius:50%;width:32px;height:32px;font-size:17px;line-height:1}
 
 /* The roulette-wheel button: sun/coral/mint/sky segments turn around a sky-blue centre */
@@ -380,9 +384,14 @@ nav.tabs .acct-who b{display:inline-block;margin-left:6px;background:var(--sun);
           <button type="button" data-pool="both" aria-pressed="false">My lists</button>
           <button type="button" data-pool="fav" aria-pressed="false">Favorites</button>
         </div>
+        <div class="crave where">
+          <div class="box"><span class="pin" aria-hidden="true">📍</span><input id="where" type="search" list="whereNames" placeholder="Anywhere, or type an area or street" autocomplete="off" enterkeyhint="go" aria-label="Type a location, like Dundas or Locke St">
+          <button class="clear" type="button" id="whereClear" aria-label="Clear location" hidden>×</button></div>
+          <small class="where-n" id="whereN" hidden></small>
+        </div>
       </div>
       <p class="step-h"><span class="num n3">3</span>Press the big button!</p>
-      <datalist id="cuisineNames"></datalist>
+      <datalist id="cuisineNames"></datalist><datalist id="whereNames"></datalist>
       <button class="go" id="go" type="button"><span><em class="go-l" id="goLabel">Spin!</em><small id="goSub">Pick for me</small></span></button>
       <div class="ticket" id="ticket" aria-live="polite"></div>
     </div>
@@ -506,7 +515,7 @@ const IDEAS = {
   fav: ["Pizza","Burgers","Tacos","Sushi","Chinese","Thai curry","Fried chicken","Burritos"],
   try: ["Ethiopian","Pho","Korean BBQ","Greek gyros","Indian thali","Ramen","Poke bowl","Lebanese"]
 };
-const S = { items: [], places: [], placesState: "loading", pool: "all", craving: "", pick: null, order: 0, store: null, view: "pick", editing: null, f: {kind:"all", price:0, q:"", area:"", tried:"all", ver:"all"}, founderTried: new Map() };
+const S = { items: [], places: [], placesState: "loading", pool: "all", craving: "", pick: null, order: 0, store: null, view: "pick", editing: null, where: "", f: {kind:"all", price:0, q:"", area:"", tried:"all", ver:"all"}, founderTried: new Map() };
 const VIEWS = ["pick","lists","explore"]; // Map tab removed at Troy's request; cards keep their Map ↗ links
 
 /* ---------- Storage: local first, account (db) when available ---------- */
@@ -732,8 +741,36 @@ function renderFoods(){
   const typed = S.craving.trim() && !FOODS.some(f => f[1] === S.craving);
   $("#foods").innerHTML = FOODS.map(([label, q, icon]) => `<button type="button" class="food" data-food="${esc(q)}" aria-pressed="${!typed && S.craving === q}"><span aria-hidden="true">${icon}</span>${esc(label)}</button>`).join("");
 }
+// Typed location: town, neighbourhood, street or postal code (first 3), matched against each address
+const HOODS = {
+  "Downtown Hamilton": {fsa: ["L8P","L8R","L8N"]}, "Westdale": {fsa: ["L8S"]}, "McMaster": {fsa: ["L8S"]},
+  "Locke Street": {st: ["locke st"]}, "James Street North": {st: ["james st n"]}, "Ottawa Street": {st: ["ottawa st"]},
+  "Concession Street": {st: ["concession st"]}, "Barton Village": {st: ["barton st e"]}, "International Village": {st: ["king st e"]},
+  "North End": {fsa: ["L8L"]}, "Durand": {fsa: ["L8P"]}, "Kirkendall": {fsa: ["L8P"], st: ["locke st"]}, "Crown Point": {fsa: ["L8H"]},
+  "East Hamilton": {fsa: ["L8H","L8K"]}, "Hamilton Mountain": {fsa: ["L8T","L8V","L8W","L9A","L9B","L9C","L9K"], st: ["upper ","rymal","stone church","mohawk","fennell","concession st"]},
+  "Stoney Creek": {fsa: ["L8E","L8G","L8J"]}, "Ancaster": {fsa: ["L9G"]}, "Dundas": {fsa: ["L9H"]}, "Waterdown": {fsa: ["L8B"]}, "Binbrook": {}
+};
+const ALIASES = {"downtown": "Downtown Hamilton", "the mountain": "Hamilton Mountain", "mountain": "Hamilton Mountain", "mac": "McMaster", "locke": "Locke Street", "james north": "James Street North", "james st n": "James Street North", "ottawa st": "Ottawa Street", "concession": "Concession Street", "barton": "Barton Village"};
+function whereTest(raw){
+  const q = norm(raw).replace(/\bstreet\b/g, "st").replace(/\bnorth\b/g, "n").replace(/\bsouth\b/g, "s").replace(/\beast\b/g, "e").replace(/\bwest\b/g, "w").trim();
+  if (!q) return null;
+  const hoodName = Object.keys(HOODS).find(h => norm(h).replace(/\bstreet\b/g, "st").replace(/\bnorth\b/g, "n") === q) || ALIASES[q] || ALIASES[norm(raw).trim()];
+  const h = hoodName ? HOODS[hoodName] : null;
+  return pl => {
+    const a = norm(pl.address || ""), pc = ((pl.address || "").toUpperCase().match(/\b(L\d[A-Z])\s?\d[A-Z]\d/) || [])[1];
+    if (h && ((h.fsa || []).includes(pc) || (h.st || []).some(t => a.includes(t)) || a.includes(", " + norm(hoodName)))) return true;
+    if (h) return false;
+    if (/^l\d[a-z]/.test(q.replace(/\s/g, "")) && pc && q.replace(/\s/g, "").toUpperCase().startsWith(pc)) return true;
+    return a.includes(q) || norm(areaOf(pl)) === q;
+  };
+}
 function candidates(){
-  const all = candidatesAll(), c = S.craving.trim();
+  const test = whereTest(S.where || "");
+  const near = test ? candidatesAll().filter(x => { const pl = placeOf(x); return pl ? test(pl) : norm(x.address || "").includes(norm(S.where)); }) : candidatesAll();
+  return byFood(near);
+}
+function byFood(all){
+  const c = S.craving.trim();
   if (!c) return all;
   const words = c.split(/[^A-Za-z]+/).filter(w => w.length > 2).map(stem);
   if (!words.length) return all;
@@ -946,14 +983,18 @@ function render(){
   const tally = SPINS.owner ? "" : `<i class="left">${left} of ${SPINS.daily()} ${SPINS.daily() === 1 ? "spin" : "spins"} left today</i>`;
   // After a spin the big button becomes "Spin again" and shows the spins left
   const again = !!S.pick && left > 0 && pool.length > 0;
-  $("#goLabel").textContent = canUp ? "Get 3 spins" : again ? "Spin again" : "Spin!";
+  $("#goLabel").textContent = canUp ? "Get more" : again ? "Spin again" : "Spin!";
   $("#go").classList.toggle("again", again);
   $("#goSub").innerHTML = canUp ? `<i>That was your free spin today</i><i class="left">Create an account to unlock ${DAILY} spins</i>`
     : !left ? `<i>No spins left today</i><i class="left">${SPINS.account ? "Come back tomorrow!" : `Sign in for ${DAILY} spins a day`}</i>`
     : again ? (SPINS.owner ? `<i class="left">Unlimited spins</i>` : `<b>${left}</b><i>${left === 1 ? "spin" : "spins"} left today</i>`)
     : pool.length ? `<b>${pool.length.toLocaleString()}</b><i>${what} to choose from</i>${tally}`
-    : `<i>${S.craving.trim() ? `No ${esc((FOODS.find(f => f[1] === S.craving) || [S.craving.trim()])[0])} spots here` : S.pool === "all" && S.placesState === "loading" ? "Loading restaurants…" : "Add to your lists first"}</i>`;
+    : `<i>${S.where.trim() ? `No matching spots near ${esc(S.where.trim())}` : S.craving.trim() ? `No ${esc((FOODS.find(f => f[1] === S.craving) || [S.craving.trim()])[0])} spots here` : S.pool === "all" && S.placesState === "loading" ? "Loading restaurants…" : "Add to your lists first"}</i>`;
   $("#craveClear").hidden = !$("#crave").value;
+  $("#whereClear").hidden = !$("#where").value;
+  if (S.where.trim()){ const n = pool.length; $("#whereN").hidden = false; $("#whereN").textContent = n ? `${n} ${n === 1 ? "spot" : "spots"} in or near "${S.where.trim()}"` : `Nothing found for "${S.where.trim()}". Try a town, neighbourhood or street.`; } else $("#whereN").hidden = true;
+  const wl = [...new Set([...S.places.map(areaOf), ...Object.keys(HOODS)])].sort().map(a => `<option value="${esc(a)}"></option>`).join("");
+  if ($("#whereNames").innerHTML !== wl) $("#whereNames").innerHTML = wl;
   renderFoods();
   const cz = [...new Set(S.places.map(p => p.cuisine))].sort().map(c => `<option value="${esc(c)}"></option>`).join("");
   if ($("#cuisineNames").innerHTML !== cz) $("#cuisineNames").innerHTML = cz;
@@ -1074,6 +1115,9 @@ $("#crave").addEventListener("input", e => { S.craving = e.target.value; render(
 $("#foods").addEventListener("click", e => { const b = e.target.closest("[data-food]"); if (!b) return; S.craving = b.dataset.food; $("#crave").value = ""; render(); });
 $("#crave").addEventListener("keydown", e => { if (e.key === "Enter"){ e.preventDefault(); e.target.blur(); spin(); } });
 $("#craveClear").addEventListener("click", () => { S.craving = ""; $("#crave").value = ""; render(); });
+$("#where").addEventListener("input", e => { S.where = e.target.value; prefs.set("where", S.where); render(); });
+$("#where").addEventListener("keydown", e => { if (e.key === "Enter"){ e.preventDefault(); e.target.blur(); spin(); } });
+$("#whereClear").addEventListener("click", () => { S.where = ""; $("#where").value = ""; prefs.set("where", ""); render(); });
 document.querySelectorAll("[data-pool]").forEach(b => b.addEventListener("click", () => { S.pool = b.dataset.pool; local.save(); render(); }));
 document.querySelectorAll("form.add").forEach(f => f.addEventListener("submit", e => {
   e.preventDefault(); const inp = f.querySelector("input"); add(f.dataset.list, inp.value); inp.value = ""; inp.focus();
@@ -1138,6 +1182,7 @@ S.items = Array.isArray(saved.items) ? saved.items : [];
 S.pool = saved.poolV === 2 && ["both","fav","all"].includes(saved.pool) ? saved.pool : "all";
 S.order = saved.order || 0;
 S.view = VIEWS.includes(location.hash.slice(1)) ? location.hash.slice(1) : VIEWS.includes(prefs.get("view")) ? prefs.get("view") : "pick";
+S.where = prefs.get("where") || ""; $("#where").value = S.where;
 GATE.ok = !!prefs.get("gateEmail");
 S.store = localStore; setStatus(); render();
 
