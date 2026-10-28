@@ -31,6 +31,7 @@ module.exports = async (req, res) => {
     if (req.method === "GET") {
       const raw = await redis("GET", "userdata:" + me.uid);
       let items = raw ? JSON.parse(raw).items || [] : [];
+      if (me.founder) await redis("SET", "founder:uid", me.uid); // lets /api/founder-tried find the founder's list
       if (me.founder && !(await redis("GET", "seeded:tried1:" + me.uid))) items = await seedFounderTried(me, items);
       return res.status(200).json({ items, spinsLeft: await spinsLeft(me) });
     }

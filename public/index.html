@@ -292,6 +292,8 @@ nav.tabs a[aria-current="page"]{color:var(--chili-ink);background:var(--chili-so
 .go.hello{animation:hello .9s cubic-bezier(.3,1.6,.5,1)}
 @keyframes hello{0%{scale:1}35%{scale:1.1}60%{scale:.96}100%{scale:1}}
 .card .tried{align-self:flex-start;font-size:12px;font-weight:700;border-radius:999px;padding:3px 10px;background:var(--sunk);color:var(--muted)}
+.card .tags{display:flex;flex-wrap:wrap;gap:6px}
+.card .tried.founder{background:var(--sun-soft);color:var(--sun-ink,#7A5600)}
 .card .tried.yes{background:var(--herb-soft);color:var(--herb)}
 .card .tried.nope{background:var(--coral-soft);color:var(--coral-ink)}
 .card .sub .truck{background:var(--sun);color:#16293B;font-weight:700;padding:1px 9px;border-radius:999px}
@@ -474,7 +476,7 @@ const IDEAS = {
   fav: ["Pizza","Burgers","Tacos","Sushi","Chinese","Thai curry","Fried chicken","Burritos"],
   try: ["Ethiopian","Pho","Korean BBQ","Greek gyros","Indian thali","Ramen","Poke bowl","Lebanese"]
 };
-const S = { items: [], places: [], placesState: "loading", pool: "all", craving: "", pick: null, order: 0, store: null, view: "pick", editing: null, f: {kind:"all", price:0, q:"", area:"", tried:"all"} };
+const S = { items: [], places: [], placesState: "loading", pool: "all", craving: "", pick: null, order: 0, store: null, view: "pick", editing: null, f: {kind:"all", price:0, q:"", area:"", tried:"all"}, founderTried: new Map() };
 const VIEWS = ["pick","lists","explore","map"];
 
 /* ---------- Storage: local first, account (db) when available ---------- */
@@ -961,7 +963,8 @@ function renderExplore(){
       ? `<span class="btn in">In ${inList === "fav" ? "Favorites" : "Want to try"}</span>`
       : `<button class="btn" type="button" data-addplace="${p.id}|fav">+ Favorite</button><button class="btn" type="button" data-addplace="${p.id}|try">+ Want to try</button>`;
     const t = tried.get(p.id);
-    const triedTag = t ? `<span class="tried ${t.verdict === "nope" ? "nope" : "yes"}">✓ Tried${t.verdict ? " · " + VERDICT[t.verdict] : ""}</span>` : `<span class="tried">Not tried yet</span>`;
+    const ft = S.founderTried.get(p.id);
+    const triedTag = `<div class="tags">${t ? `<span class="tried ${t.verdict === "nope" ? "nope" : "yes"}">✓ You tried it${t.verdict ? " · " + VERDICT[t.verdict] : ""}</span>` : `<span class="tried">Not tried yet</span>`}${ft !== undefined ? `<span class="tried founder">👑 Founder tried it${ft ? " · " + VERDICT[ft] : ""}</span>` : ""}</div>`;
     return `<article class="card">
       <div class="top"><b>${esc(p.name)}</b><span class="price" title="Price level">${dollars(p)}</span></div>${triedTag}
       <div class="sub">${p.rating == null ? `<span>New spot, no Google rating yet</span>` : `<span class="stars">${p.rating.toFixed(1)}</span>${p.reviews ? `<span>${p.reviews.toLocaleString()} Google reviews</span>` : `<span>on Google</span>`}`}<span>${esc(p.cuisine)}</span><span>${esc(areaOf(p))}</span>${truckUrl(p) ? `<span class="truck">🚚 Food truck</span>` : ""}</div>

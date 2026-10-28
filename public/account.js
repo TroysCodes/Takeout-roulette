@@ -111,7 +111,7 @@ async function signedIn(user, fresh){
     if (pending.length) schedule();
     syncSpins(r.body.spinsLeft);
   }
-  T.setStatus(); T.REV.load(); paintMenu(); T.render();
+  T.setStatus(); T.REV.load(); paintMenu(); loadFounderTried(); T.render();
   if (fresh) T.toast(user.founder ? "Welcome back, founder 👑" : `Signed in as ${user.email}`);
 }
 async function signOut(){
@@ -119,7 +119,7 @@ async function signOut(){
   A.user = null; T.S.store = T.localStore; T.S.items = []; T.local.save();
   T.SPINS.owner = T.prefs.get("owner") === "1";
   try { T.REV.anon = localStorage.getItem("takeout-anon") || ""; } catch {}
-  T.setStatus(); paintMenu(); T.render(); T.toast("Signed out");
+  T.setStatus(); paintMenu(); loadFounderTried(); T.render(); T.toast("Signed out");
 }
 
 /* ---------- Menu: account items at the bottom ---------- */
@@ -148,6 +148,13 @@ try {
   const id = localStorage.getItem("takeout-anon");
   if (id && !sessionStorage.getItem("tr-visit")){ sessionStorage.setItem("tr-visit", "1"); api("/api/visit", {method: "POST", body: JSON.stringify({id})}).catch(() => {}); }
 } catch {}
+
+// Restaurants the founder has tried (👑 on Explore). The founder sees his own as "You tried it".
+function loadFounderTried(){
+  if (A.user && A.user.founder){ T.S.founderTried = new Map(); T.render(); return; }
+  fetch("/api/founder-tried").then(r => r.json()).then(o => { T.S.founderTried = new Map(Object.entries(o.places || {})); T.render(); }).catch(() => {});
+}
+loadFounderTried();
 
 paintMenu();
 api("/api/auth").then(r => r.ok && r.body.user && signedIn(r.body.user, false)).catch(() => {});
