@@ -174,6 +174,20 @@ h3{font-family:var(--display);font-weight:700;font-size:20px;margin:0}
 .signups small{color:var(--muted);white-space:nowrap}
 @media (prefers-reduced-motion:reduce){.gate[open],.gate-wheel{animation:none}}
 .btn.dark{background:var(--fg);color:var(--bg);box-shadow:var(--shadow-sm)}
+.cats-wrap{margin-top:22px}
+.cat{margin-top:16px}
+.cat h4{margin:0 0 8px;font:800 17px/1.2 var(--display);display:flex;align-items:center;gap:8px}
+.cat h4 small{font:600 13px var(--body);color:var(--muted)}
+.cat-row{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x proximity;padding:2px 2px 10px;margin:0 -2px;scrollbar-width:thin;-webkit-overflow-scrolling:touch}
+.ccard{flex:0 0 154px;scroll-snap-align:start;display:flex;flex-direction:column;gap:6px;background:var(--surface);border-radius:16px;padding:12px;box-shadow:var(--shadow-sm);color:var(--fg);text-decoration:none;min-height:118px}
+.ccard:hover{box-shadow:var(--shadow)}
+.ccard b{font:800 15px/1.2 var(--display);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ccard .rt{font-size:13px;font-weight:700;color:var(--muted)}
+.ccard .rt span{color:#E7A200}
+.ccard .st{margin-top:auto;align-self:flex-start;font-size:12px;font-weight:700;border-radius:999px;padding:3px 9px;background:var(--sunk);color:var(--muted)}
+.ccard .st.done{background:var(--herb-soft);color:var(--herb)}
+.ccard .st.fav{background:var(--coral-soft);color:var(--coral-ink)}
+.ccard .st.nope{background:var(--sunk);color:var(--fg)}
 .btn.in{background:var(--sunk);box-shadow:none;color:var(--muted);cursor:default;transform:none}
 
 /* Lists */
@@ -398,6 +412,12 @@ nav.tabs .acct-who b{display:inline-block;margin-left:6px;background:var(--sun);
       <p class="hint">Every spin you confirm lands here with the date, so you can keep track.</p>
       <ul class="items" id="items-been"></ul>
       <p class="empty-note" id="empty-been">Nothing yet. Spin, then press the green Confirm button.</p>
+    </div>
+
+    <div class="cats-wrap">
+      <div class="list-head"><h3>Every restaurant, by food</h3><span class="count" id="count-cats"></span></div>
+      <p class="hint">Slide each row sideways. Each card shows the Google rating and whether you've tried it.</p>
+      <div id="cats"></div>
     </div>
 
   </section>
@@ -828,6 +848,36 @@ function bindSwipe(fg){
   fg.addEventListener("pointerup", end); fg.addEventListener("pointercancel", () => { if (mode === "drag"){ dx = 0; end(); } mode = null; });
 }
 
+/* ---------- My lists: every restaurant in rows by food, with tried / not tried ---------- */
+function renderCats(){
+  const el = $("#cats"); if (!el) return;
+  if (!S.places.length){ el.innerHTML = `<p class="empty-note">Restaurants are still loading.</p>`; $("#count-cats").textContent = ""; return; }
+  const been = new Map(), mine = new Map();
+  S.items.forEach(i => {
+    if (!i.placeId) return;
+    if (i.list === "been"){ const b = been.get(i.placeId); if (!b || (i.verdict && (!b.verdict || (i.visitedAt || "") > (b.visitedAt || "")))) been.set(i.placeId, i); }
+    else if (i.list !== "all") mine.set(i.placeId, i.list);
+  });
+  const rows = FOODS.slice(1).map(([label, q, icon]) => ({label, icon, words: q.split(" ").map(stem), list: []}));
+  const more = {label: "More local spots", icon: "🍽️", list: []};
+  S.places.forEach(p => {
+    const hay = (p.name + " " + p.cuisine).toLowerCase();
+    (rows.find(r => r.words.some(w => hay.includes(w))) || more).list.push(p);
+  });
+  const card = p => {
+    const v = been.get(p.id), l = mine.get(p.id);
+    const st = v ? `<span class="st done">✓ Tried${v.verdict ? " · " + VERDICT[v.verdict] : ""}</span>`
+      : l === "tried" ? `<span class="st nope">✓ Tried · 👎 Not for me</span>`
+      : l === "fav" ? `<span class="st fav">♥ Favorite</span>`
+      : `<span class="st">${l === "try" ? "Want to try" : "Not tried yet"}</span>`;
+    return `<a class="ccard" href="${esc(mapsUrl(p))}" target="_blank" rel="noopener"><b>${esc(p.name)}</b><span class="rt">${p.rating == null ? "New spot" : `<span>★</span> ${p.rating.toFixed(1)} on Google`}</span>${st}</a>`;
+  };
+  const all = [...rows, more].filter(r => r.list.length);
+  el.innerHTML = all.map(r => `<section class="cat"><h4><span aria-hidden="true">${r.icon}</span>${esc(r.label)} <small>${r.list.length}</small></h4>
+    <div class="cat-row">${r.list.sort((a,b) => (b.rating ?? 0) - (a.rating ?? 0)).map(card).join("")}</div></section>`).join("");
+  const tried = S.places.filter(p => been.has(p.id) || mine.get(p.id) === "tried").length;
+  $("#count-cats").textContent = `${tried} of ${S.places.length} tried`;
+}
 function render(){
   const byList = l => S.items.filter(i => i.list === l).sort((a,b)=>(a.addedAt||"").localeCompare(b.addedAt||""));
   for (const list of LISTS){
@@ -910,7 +960,7 @@ function render(){
         (i.place || i.address) ? "" : `<button class="ib" type="button" data-edit="${i.id}" data-go="lists">Add a restaurant</button>`}</div>
     </div>`).join("") : `<p class="empty-note">Add foods on the Lists page and they show up here with a link to the closest place.</p>`;
 
-  renderExplore();
+  renderExplore(); renderCats();
   for (const v of VIEWS) $("#view-"+v).hidden = S.view !== v;
   document.querySelectorAll("nav.tabs a").forEach(a => { if (a.dataset.view === S.view) a.setAttribute("aria-current","page"); else a.removeAttribute("aria-current"); });
   $("#menuNow").textContent = {lists:"My lists", explore:"Explore", map:"Map"}[S.view] || "Menu";
