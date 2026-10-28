@@ -293,7 +293,11 @@ nav.tabs a[aria-current="page"]{color:var(--chili-ink);background:var(--chili-so
 @keyframes hello{0%{scale:1}35%{scale:1.1}60%{scale:.96}100%{scale:1}}
 .card .tried{align-self:flex-start;font-size:12px;font-weight:700;border-radius:999px;padding:3px 10px;background:var(--sunk);color:var(--muted)}
 .card-rate{display:flex;flex-direction:column;gap:6px;border-top:1px dashed var(--line);padding-top:8px}
-.card-rate .rv-c input{width:100%}
+.cmt-row{display:flex;gap:6px}
+.cmt-row input{flex:1;min-width:0}
+.cmt-post{border:0;border-radius:12px;padding:0 16px;font-weight:800;font-size:14px;background:var(--chili);color:var(--chili-ink)}
+.cmt-done{margin:0;font-size:14px;line-height:1.4;overflow-wrap:anywhere}
+.cmt-done .ok{color:#15803d;font-weight:800;font-size:12px;margin-right:4px}
 .been-box{background:var(--surface);box-shadow:var(--shadow-sm);border-radius:20px;padding:14px 16px;margin:0 0 14px;display:flex;flex-direction:column;gap:10px}
 .been-sum{margin:0;font-size:15px;font-weight:600}
 .been-sum b{font:800 22px/1 var(--display)}
@@ -613,8 +617,21 @@ function beenRow(i){
   const d = new Date(i.visitedAt || i.addedAt), when = isNaN(d) ? "" : d.toLocaleDateString(undefined, {weekday:"short", month:"short", day:"numeric"});
   const rate = `<div class="acts-row rate" role="group" aria-label="How was ${esc(i.name)}?"><span class="rate-q">${i.verdict ? "Your rating:" : "How was it?"}</span>${RATES.map(([v, label]) =>
     `<button class="ib${i.verdict === v ? " on" : ""}" type="button" data-rate="${i.id}|${v}" aria-pressed="${i.verdict === v}">${label}</button>`).join("")}</div>`;
-  const cmt = i.verdict ? `<div class="rv-c"><input type="text" data-cmt="${i.id}" value="${esc(i.comment || "")}" maxlength="200" placeholder="Add a comment for others (optional)" aria-label="Comment about ${esc(i.name)}" enterkeyhint="done">${i.placeId ? `<small>${i.comment ? "Shared" : "Your rating is shared"} with everyone, without your name.</small>` : ""}</div>` : "";
+  const cmt = i.verdict ? cmtBox(i.id, i.comment, i.name, i.placeId ? `${i.comment ? "Shared" : "Your rating is shared"} with everyone, without your name.` : "") : "";
   return `<li data-name="${esc(i.name)}" data-id="${i.id}"><div class="bg" aria-hidden="true">Delete</div><div class="fg"><span class="nm"><b>${esc(i.name)}</b><small>${esc(when)}${i.address ? " · " + esc(i.address) : ""}</small></span>${rate}${cmt}</div></li>`;
+}
+// Comment box: type + Post (or Enter); once posted it shows as text with Edit / Remove
+function cmtBox(id, comment, name, note){
+  const sm = note ? `<small>${note}</small>` : "";
+  if (comment && S.cmtEdit !== id) return `<div class="rv-c"><p class="cmt-done"><span class="ok">✓ Posted</span> “${esc(comment)}”</p><div class="acts-row"><button class="ib" type="button" data-cmtedit="${id}">Edit</button><button class="ib" type="button" data-cmtdel="${id}">Remove</button></div>${sm}</div>`;
+  return `<form class="rv-c" data-cmtform="${id}"><div class="cmt-row"><input type="text" name="c" data-cmt="${id}" value="${esc(comment || "")}" maxlength="200" placeholder="Leave a comment others can read (optional)" aria-label="Comment about ${esc(name)}" enterkeyhint="send"><button class="cmt-post" type="submit">Post</button></div>${sm}</form>`;
+}
+function saveComment(id, raw){
+  const it = S.items.find(i => i.id === id); if (!it) return;
+  const c = cleanComment(raw); S.cmtEdit = null;
+  if (c === (it.comment || "")){ render(); return; }
+  update(id, {comment: c}); if (it.placeId) REV.sync(it.placeId);
+  toast(c ? "Comment posted" : "Comment removed");
 }
 const RATES = [["loved","😍 Loved it"],["ok","🙂 It was OK"],["nope","👎 Not for me"]];
 function rateVisit(id, v){
@@ -1018,7 +1035,7 @@ function renderExplore(){
       <div class="sub">${p.rating == null ? `<span>New spot, no Google rating yet</span>` : `<span class="stars">${p.rating.toFixed(1)}</span>${p.reviews ? `<span>${p.reviews.toLocaleString()} Google reviews</span>` : `<span>on Google</span>`}`}<span>${esc(p.cuisine)}</span><span>${esc(areaOf(p))}</span>${truckUrl(p) ? `<span class="truck">🚚 Food truck</span>` : ""}</div>
       <div class="addr">${truckUrl(p) ? "Home base: " : ""}${esc(p.address)}</div>${crowd(p.id, 3, true)}${t ? `<div class="card-rate">
         <div class="acts-row rate" role="group" aria-label="Rate ${esc(p.name)}"><span class="rate-q">${t.verdict ? "Your rating:" : "How was it?"}</span>${RATES.map(([v, label]) =>
-          `<button class="ib${t.verdict === v ? " on" : ""}" type="button" data-cardrate="${p.id}|${v}" aria-pressed="${t.verdict === v}">${label}</button>`).join("")}</div>${t.verdict && t.id ? `<div class="rv-c"><input type="text" data-cmt="${t.id}" value="${esc(t.comment || "")}" maxlength="200" placeholder="Leave a comment others can read (optional)" aria-label="Comment about ${esc(p.name)}" enterkeyhint="done"><small>Shared with everyone, without your name.</small></div>` : ""}</div>` : ""}
+          `<button class="ib${t.verdict === v ? " on" : ""}" type="button" data-cardrate="${p.id}|${v}" aria-pressed="${t.verdict === v}">${label}</button>`).join("")}</div>${t.verdict && t.id ? cmtBox(t.id, t.comment, p.name, "Shared with everyone, without your name.") : ""}</div>` : ""}
       <div class="links">${btns}${truckUrl(p) ? `<a class="btn dark" href="${esc(truckUrl(p))}" target="_blank" rel="noopener">Where's the truck today? ↗</a>` : `<a class="btn" href="${esc(mapsUrl(p))}" target="_blank" rel="noopener">Map ↗</a>`}</div>
     </article>`;
   }).join("") : `<p class="empty-note">No places match. Try another search or price.</p>`;
@@ -1063,6 +1080,8 @@ document.addEventListener("click", e => {
   else if (d.toggletried) toggleTried(d.toggletried);
   else if (d.price !== undefined && b.closest("#view-explore")){ S.f.price = +d.price; renderExplore(); }
   else if (d.rate){ const [id, v] = d.rate.split("|"); rateVisit(id, v); }
+  else if (d.cmtedit){ S.cmtEdit = d.cmtedit; render(); const inp = document.querySelector(`[data-cmt="${d.cmtedit}"]`); if (inp){ inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); } }
+  else if (d.cmtdel) saveComment(d.cmtdel, "");
   else if (d.cardrate){ const [pid, v] = d.cardrate.split("|"); rateFromCard(pid, v); }
   else if (d.loved) tried(d.loved, true);
   else if (d.meh) tried(d.meh, false);
@@ -1077,14 +1096,10 @@ document.addEventListener("click", e => {
   }
   else if (d.remove){ S.editing = null; remove(d.remove); }
 });
-document.addEventListener("change", e => {
-  const id = e.target.dataset && e.target.dataset.cmt; if (!id) return;
-  const it = S.items.find(i => i.id === id); if (!it) return;
-  const c = cleanComment(e.target.value); if (c === (it.comment || "")) return;
-  update(id, {comment: c}); if (it.placeId) REV.sync(it.placeId);
-  toast(c ? "Comment saved" : "Comment removed");
+document.addEventListener("submit", e => {
+  const f = e.target.closest("[data-cmtform]"); if (!f) return;
+  e.preventDefault(); const inp = f.querySelector("[data-cmt]"); inp.blur(); saveComment(f.dataset.cmtform, inp.value);
 });
-document.addEventListener("keydown", e => { if (e.key === "Enter" && e.target.dataset && e.target.dataset.cmt){ e.preventDefault(); e.target.blur(); } });
 document.addEventListener("input", e => {
   if (e.target.id !== "lkTime" || !S.pick) return;
   S.pick.time = e.target.value; const L = calLinks(S.pick, S.pick.time);
