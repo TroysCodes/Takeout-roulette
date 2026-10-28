@@ -10,16 +10,20 @@ async function spinsLeft(me) {
   return Math.max(0, DAILY - used);
 }
 
-// One time: add the places the founder has already been to as unrated visits
+// Add the places the founder has already been to as unrated visits, once per batch
 async function seedFounderTried(me, items) {
+  const list = require("./_founder_tried"), batches = [...new Set(list.map(x => x[3]))];
+  const done = await Promise.all(batches.map(b => redis("GET", `seeded:${b}:${me.uid}`)));
+  const todo = new Set(batches.filter((b, n) => !done[n]));
+  if (!todo.size) return items;
   const have = new Set(items.filter(i => i.list === "been" || i.list === "tried").map(i => i.placeId));
   const at = new Date().toISOString();
-  require("./_founder_tried").forEach(([placeId, name, address], n) => {
-    if (have.has(placeId)) return;
+  list.forEach(([placeId, name, address, batch], n) => {
+    if (!todo.has(batch) || have.has(placeId)) return;
     items.push({ id: "seed" + n.toString(36) + Date.now().toString(36), name, place: "", address, placeId, list: "been", visitedAt: at, addedAt: at });
   });
   await redis("SET", "userdata:" + me.uid, JSON.stringify({ items, at }));
-  await redis("SET", "seeded:tried1:" + me.uid, at);
+  for (const b of todo) await redis("SET", `seeded:${b}:${me.uid}`, at);
   return items;
 }
 
@@ -32,7 +36,7 @@ module.exports = async (req, res) => {
       const raw = await redis("GET", "userdata:" + me.uid);
       let items = raw ? JSON.parse(raw).items || [] : [];
       if (me.founder) await redis("SET", "founder:uid", me.uid); // lets /api/founder-tried find the founder's list
-      if (me.founder && !(await redis("GET", "seeded:tried1:" + me.uid))) items = await seedFounderTried(me, items);
+      if (me.founder) items = await seedFounderTried(me, items);
       return res.status(200).json({ items, spinsLeft: await spinsLeft(me) });
     }
     if (req.method === "PUT") {
