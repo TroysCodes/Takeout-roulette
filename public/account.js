@@ -28,7 +28,7 @@ document.body.insertAdjacentHTML("beforeend", `
     <p id="acctSub">Your lists, visits and ratings follow you to any device.</p>
     <input id="acctEmail" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" aria-label="Email" required>
     <div class="pw-wrap">
-      <input id="acctPw" type="password" autocomplete="current-password" placeholder="Password (8+ characters)" aria-label="Password" required minlength="8">
+      <input id="acctPw" type="password" autocomplete="current-password" placeholder="Password (8+ long)" aria-label="Password" required minlength="8">
       <button type="button" class="pw-eye" id="acctEye" aria-label="Show password" aria-pressed="false">Show</button>
     </div>
     <label class="agree" id="acctAgreeRow" hidden><input type="checkbox" id="acctAgree"><span>I agree with all of the <a href="/privacy" target="_blank">privacy policy</a> and consent to an email once a week.</span></label>
