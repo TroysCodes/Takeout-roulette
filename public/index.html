@@ -139,6 +139,7 @@ h3{font-family:var(--display);font-weight:700;font-size:20px;margin:0}
 .tag{align-self:flex-start;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:5px 10px;border-radius:999px;white-space:nowrap}
 .tag.fav{background:var(--coral-soft);color:var(--coral-ink)}
 .tag.try{background:var(--herb-soft);color:var(--herb)}
+.tag.fusion{background:var(--chili-soft);color:var(--chili-ink);white-space:normal}
 .tag.tried{background:var(--sun-soft);color:var(--sun-ink)}
 .btn{border:0;background:var(--surface);box-shadow:var(--shadow-sm),inset 0 0 0 1.5px var(--line);border-radius:999px;padding:12px 18px;font-weight:700;font-size:15px;transition:transform .15s cubic-bezier(.3,1.6,.5,1),box-shadow .15s;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
 .btn:hover{transform:translateY(-2px)}
@@ -519,7 +520,7 @@ const IDEAS = {
   fav: ["Pizza","Burgers","Tacos","Sushi","Chinese","Thai curry","Fried chicken","Burritos"],
   try: ["Ethiopian","Pho","Korean BBQ","Greek gyros","Indian thali","Ramen","Poke bowl","Lebanese"]
 };
-const S = { items: [], places: [], placesState: "loading", pool: "all", craving: "", pick: null, order: 0, store: null, view: "pick", editing: null, where: "", f: {kind:"all", price:0, q:"", area:"", tried:"all", ver:"all"}, founderTried: new Map() };
+const S = { items: [], places: [], placesState: "loading", pool: "all", craving: "", foods: [], pick: null, order: 0, store: null, view: "pick", editing: null, where: "", f: {kind:"all", price:0, q:"", area:"", tried:"all", ver:"all"}, founderTried: new Map() };
 const VIEWS = ["pick","lists","explore"]; // Map tab removed at Troy's request; cards keep their Map ↗ links
 
 /* ---------- Storage: local first, account (db) when available ---------- */
@@ -741,9 +742,16 @@ const FOODS = [
   ["Italian","italian pasta","🍝"], ["Fish & chips","fish seafood","🐟"], ["Breakfast","breakfast diner brunch","🥞"],
   ["Thai","thai","🍜"], ["Indian","indian nepalese","🍛"], ["BBQ","barbecue bbq rotisserie","🍗"], ["Subs & sandwiches","sandwich sub deli banh","🥪"]
 ];
+// Food chips are multi-select: S.foods holds the chosen chips' search words; "Any food" clears them
 function renderFoods(){
-  const typed = S.craving.trim() && !FOODS.some(f => f[1] === S.craving);
-  $("#foods").innerHTML = FOODS.map(([label, q, icon]) => `<button type="button" class="food" data-food="${esc(q)}" aria-pressed="${!typed && S.craving === q}"><span aria-hidden="true">${icon}</span>${esc(label)}</button>`).join("");
+  const none = !S.foods.length && !S.craving.trim();
+  $("#foods").innerHTML = FOODS.map(([label, q, icon]) => `<button type="button" class="food" data-food="${esc(q)}" aria-pressed="${q ? S.foods.includes(q) : none}"><span aria-hidden="true">${icon}</span>${esc(label)}</button>`).join("");
+}
+// Every chosen food group (chips + typed food), as [label, search words]
+function foodGroups(){
+  const g = S.foods.map(q => [(FOODS.find(f => f[1] === q) || [q])[0], q]);
+  if (S.craving.trim()) g.push([S.craving.trim(), S.craving.trim()]);
+  return g;
 }
 // Typed location: find its spot on the map, then keep places within 10 km.
 // Places have no saved coordinates, so each one gets its postal area's centre (FSA), or a hand-placed spot below.
@@ -795,12 +803,17 @@ function candidates(){
   const near = test ? candidatesAll().filter(x => { const pl = placeOf(x); return pl && test(pl); }) : candidatesAll();
   return byFood(near);
 }
+// Keeps places in ANY chosen food group (their whole category); a place in 2+ groups is a fusion and gets tagged
 function byFood(all){
-  const c = S.craving.trim();
-  if (!c) return all;
-  const words = c.split(/[^A-Za-z]+/).filter(w => w.length > 2).map(stem);
-  if (!words.length) return all;
-  return all.filter(x => { const pl = placeOf(x); const hay = ((x.name || "") + " " + (pl ? pl.cuisine : "")).toLowerCase(); return words.some(w => hay.includes(w)); });
+  const groups = foodGroups().map(([label, q]) => [label, q.split(/[^A-Za-z]+/).filter(w => w.length > 2).map(stem)]).filter(g => g[1].length);
+  if (!groups.length) return all;
+  const out = [];
+  all.forEach(x => {
+    const pl = placeOf(x), hay = ((x.name || "") + " " + (pl ? pl.cuisine : "")).toLowerCase();
+    const hit = groups.filter(([, words]) => words.some(w => hay.includes(w))).map(g => g[0]);
+    if (hit.length) out.push(hit.length > 1 ? {...x, fusion: hit} : x);
+  });
+  return out;
 }
 function candidatesAll(){
   if (!S.places.length) return poolItems().map(i => ({key: i.id, name: i.name, address: i.address, place: i.place, list: i.list, itemId: i.id}));
@@ -1034,8 +1047,8 @@ function render(){
   $("#goSub").innerHTML = canUp ? `<i>That was your free spin today</i><i class="left">Create an account to unlock ${DAILY} spins</i>`
     : !left ? `<i>No spins left today</i><i class="left">${SPINS.account ? "Come back tomorrow!" : `Sign in for ${DAILY} spins a day`}</i>`
     : again ? (SPINS.owner ? `<i class="left">Unlimited spins</i>` : `<b>${left}</b><i>${left === 1 ? "spin" : "spins"} left today</i>`)
-    : pool.length ? `<b>${pool.length.toLocaleString()}</b><i>${what} to choose from</i>${tally}`
-    : `<i>${S.where.trim() ? `No matching spots near ${esc(S.where.trim())}` : S.craving.trim() ? `No ${esc((FOODS.find(f => f[1] === S.craving) || [S.craving.trim()])[0])} spots here` : S.pool === "all" && S.placesState === "loading" ? "Loading restaurants…" : "Add to your lists first"}</i>`;
+    : pool.length ? `<b>${pool.length.toLocaleString()}</b><i>${what} to choose from${pool.some(x => x.fusion) ? `, ${pool.filter(x => x.fusion).length} fusion` : ""}</i>${tally}`
+    : `<i>${S.where.trim() ? `No matching spots near ${esc(S.where.trim())}` : foodGroups().length ? `No ${esc(foodGroups().map(g => g[0]).join(" or "))} spots here` : S.pool === "all" && S.placesState === "loading" ? "Loading restaurants…" : "Add to your lists first"}</i>`;
   $("#craveClear").hidden = !$("#crave").value;
   $("#whereClear").hidden = !$("#where").value;
   if (S.where.trim()){ const n = pool.length; $("#whereN").hidden = false; const c = whereCenter(S.where); $("#whereN").textContent = !c.ll ? `Can't find "${S.where.trim()}" yet. Try a town, neighbourhood, street or postal code.` : `${n} ${n === 1 ? "spot" : "spots"} within ${RADIUS_KM} km of ${c.name}`; } else $("#whereN").hidden = true;
@@ -1053,7 +1066,7 @@ function render(){
     const isTry = p.list === "try";
     const TAG = {try:"Something new!", fav:"One of your favorites", tried:"Tried before", all:"Tonight you're eating at"};
     t.innerHTML = `<div class="meta"><span>ORDER #${String(S.order).padStart(3,"0")}</span><span>${at.toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"})} · ${at.toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"})}</span></div>
-      <span class="tag ${p.list === "all" ? "tried" : p.list}">${TAG[p.list] || ""}</span>
+      <span class="tag ${p.list === "all" ? "tried" : p.list}">${TAG[p.list] || ""}</span>${p.fusion ? `<span class="tag fusion">✨ Fusion: ${esc(p.fusion.join(" + "))}</span>` : ""}
       <p class="dish">${esc(p.name)}</p>${truckUrl(placeOf(p)) ? `<p class="where">🚚 Food truck, moves around. Home base: ${esc(p.address)}</p>` : (p.address || p.place) ? `<p class="where">${esc(p.address || p.place)}</p>` : ""}${(() => { const pl = placeOf(p); return pl ? `<p class="where">${pl.rating == null ? "New spot, no Google rating yet" : `★ ${pl.rating.toFixed(1)} on Google`} · ${"$".repeat(pl.price)}${pl.priceSource === "est" ? " (est.)" : ""} · ${esc(pl.cuisine)}</p>` : ""; })()}${p.via ? `<p class="where">Because you listed ${esc(p.via)}</p>` : ""}${p.placeId ? crowd(p.placeId, 1) : ""}
       <div class="acts">${truckUrl(placeOf(p)) ? `<a class="btn dark" href="${esc(truckUrl(placeOf(p)))}" target="_blank" rel="noopener">Where's the truck today? ↗</a>` : `<a class="btn dark" href="${esc(mapsUrl(p))}" target="_blank" rel="noopener">Show me the map ↗</a>`}${
         isTry && live && !p.confirmed ? `<button class="btn herb" type="button" data-loved="${p.itemId}">Tried it, loved it</button>` : p.placeId && !live ? (() => {
@@ -1159,7 +1172,12 @@ $("#go").addEventListener("animationend", e => { if (e.animationName === "hello"
 $("#dinner").addEventListener("click", toWheel);
 $("#dinner").addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toWheel(); } });
 $("#crave").addEventListener("input", e => { S.craving = e.target.value; render(); });
-$("#foods").addEventListener("click", e => { const b = e.target.closest("[data-food]"); if (!b) return; S.craving = b.dataset.food; $("#crave").value = ""; render(); });
+$("#foods").addEventListener("click", e => {
+  const b = e.target.closest("[data-food]"); if (!b) return; const q = b.dataset.food;
+  if (!q){ S.foods = []; S.craving = ""; $("#crave").value = ""; }
+  else S.foods = S.foods.includes(q) ? S.foods.filter(x => x !== q) : [...S.foods, q];
+  render();
+});
 $("#crave").addEventListener("keydown", e => { if (e.key === "Enter"){ e.preventDefault(); e.target.blur(); spin(); } });
 $("#craveClear").addEventListener("click", () => { S.craving = ""; $("#crave").value = ""; render(); });
 $("#where").addEventListener("input", e => { S.where = e.target.value; prefs.set("where", S.where); render(); });
