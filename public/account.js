@@ -38,8 +38,10 @@ document.body.insertAdjacentHTML("beforeend", `
     <button class="gate-later" type="button" id="acctClose">Not now</button>
   </form>
 </dialog>`);
-function openAcct(mode){
-  A.mode = mode || "login"; paintAcct(); showPw(false); $("#acctErr").hidden = true;
+// Signed out: 1 spin a day; pressing Spin after it offers an account for 3
+T.SPINS.upsell = () => openAcct("signup", `Create an account to unlock ${T.DAILY} spins a day. Your lists, visits and ratings come with you too.`);
+function openAcct(mode, sub){
+  A.mode = mode || "login"; paintAcct(); $("#acctSub").textContent = sub || "Your lists, visits and ratings follow you to any device."; showPw(false); $("#acctErr").hidden = true;
   const d = $("#acct"); if (d.showModal){ if (!d.open) d.showModal(); } else d.setAttribute("open", "");
   setTimeout(() => $("#acctEmail").focus(), 50);
 }
@@ -92,14 +94,14 @@ T.SPINS.take = function(){
 };
 function syncSpins(left){
   if (typeof left !== "number") return;
-  T.prefs.set(T.SPINS.key(), String(Math.max(0, T.DAILY - left))); T.render();
+  T.prefs.set(T.SPINS.key(), String(Math.max(0, T.SPINS.daily() - left))); T.render();
 }
 
 /* ---------- Signed in / out ---------- */
 async function signedIn(user, fresh){
   A.user = user; if (!user) return paintMenu();
   T.GATE.ok = true; T.prefs.set("gateEmail", user.email);
-  T.SPINS.owner = !!user.founder;
+  T.SPINS.owner = !!user.founder; T.SPINS.account = true;
   T.REV.anon = user.uid;
   const r = await api("/api/me").catch(() => null);
   if (r && r.ok){
@@ -117,7 +119,7 @@ async function signedIn(user, fresh){
 async function signOut(){
   await api("/api/auth", {method: "POST", body: JSON.stringify({action: "logout"})}).catch(() => {});
   A.user = null; T.S.store = T.localStore; T.S.items = []; T.local.save();
-  T.SPINS.owner = T.prefs.get("owner") === "1";
+  T.SPINS.owner = T.prefs.get("owner") === "1"; T.SPINS.account = false;
   try { T.REV.anon = localStorage.getItem("takeout-anon") || ""; } catch {}
   T.setStatus(); paintMenu(); loadFounderTried(); T.render(); T.toast("Signed out");
 }

@@ -774,20 +774,24 @@ $("#gateForm").addEventListener("submit", e => {
 });
 $("#gateLater").addEventListener("click", closeGate);
 const csvCell = v => /[",\n]/.test(v) ? `"${String(v).replace(/"/g, '""')}"` : String(v);
-/* ---------- 3 spins per person per day; the owner spins as much as they like ---------- */
+/* ---------- Spins per day: 1 signed out, 3 with an account; the owner spins as much as they like ---------- */
 const DAILY = 3;
 const SPINS = {
-  owner: false,
+  owner: false, account: false, upsell: null,
+  daily(){ return this.account ? DAILY : 1; },
   key: () => "spins-" + new Date().toLocaleDateString("en-CA"),
   used(){ return +(prefs.get(this.key()) || 0); },
-  left(){ return this.owner ? Infinity : Math.max(0, DAILY - this.used()); },
+  left(){ return this.owner ? Infinity : Math.max(0, this.daily() - this.used()); },
   take(){ if (!this.owner) prefs.set(this.key(), String(this.used() + 1)); }
 };
 let spinning = false;
 function spin(){
   if (spinning) return;
   if (!GATE.ok){ openGate(); return; }
-  if (!SPINS.left()){ toast(`That's your ${DAILY} spins for today. Come back tomorrow for more!`); render(); return; }
+  if (!SPINS.left()){
+    if (!SPINS.account && SPINS.upsell){ SPINS.upsell(); return; }
+    toast(SPINS.account ? `That's your ${SPINS.daily()} spins for today. Come back tomorrow for more!` : `That's your free spin for today. Sign in for ${DAILY} spins a day!`); render(); return;
+  }
   const pool = candidates(); if (!pool.length) return;
   SPINS.take();
   const choices = pool.length > 1 && S.pick ? pool.filter(c => c.key !== S.pick.key) : pool;
@@ -935,15 +939,17 @@ function render(){
   document.querySelectorAll("[data-pool]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.pool === S.pool)));
   const pool = candidates();
   const left = SPINS.left();
-  if (!spinning) $("#go").disabled = !pool.length || !left;
+  const canUp = !left && !SPINS.account && !!SPINS.upsell;
+  if (!spinning) $("#go").disabled = !pool.length || (!left && !canUp);
   $("#go").classList.toggle("idle", !S.pick && pool.length > 0 && left > 0);
   const what = S.places.length ? (pool.length === 1 ? "restaurant" : "restaurants") : (pool.length === 1 ? "option" : "options");
-  const tally = SPINS.owner ? "" : `<i class="left">${left} of ${DAILY} spins left today</i>`;
+  const tally = SPINS.owner ? "" : `<i class="left">${left} of ${SPINS.daily()} ${SPINS.daily() === 1 ? "spin" : "spins"} left today</i>`;
   // After a spin the big button becomes "Spin again" and shows the spins left
   const again = !!S.pick && left > 0 && pool.length > 0;
-  $("#goLabel").textContent = again ? "Spin again" : "Spin!";
+  $("#goLabel").textContent = canUp ? "Get 3 spins" : again ? "Spin again" : "Spin!";
   $("#go").classList.toggle("again", again);
-  $("#goSub").innerHTML = !left ? `<i>No spins left today</i><i class="left">Come back tomorrow!</i>`
+  $("#goSub").innerHTML = canUp ? `<i>That was your free spin today</i><i class="left">Create an account to unlock ${DAILY} spins</i>`
+    : !left ? `<i>No spins left today</i><i class="left">${SPINS.account ? "Come back tomorrow!" : `Sign in for ${DAILY} spins a day`}</i>`
     : again ? (SPINS.owner ? `<i class="left">Unlimited spins</i>` : `<b>${left}</b><i>${left === 1 ? "spin" : "spins"} left today</i>`)
     : pool.length ? `<b>${pool.length.toLocaleString()}</b><i>${what} to choose from</i>${tally}`
     : `<i>${S.craving.trim() ? `No ${esc((FOODS.find(f => f[1] === S.craving) || [S.craving.trim()])[0])} spots here` : S.pool === "all" && S.placesState === "loading" ? "Loading restaurants…" : "Add to your lists first"}</i>`;
