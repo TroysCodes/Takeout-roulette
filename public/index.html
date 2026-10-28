@@ -292,8 +292,21 @@ nav.tabs a[aria-current="page"]{color:var(--chili-ink);background:var(--chili-so
 .go.hello{animation:hello .9s cubic-bezier(.3,1.6,.5,1)}
 @keyframes hello{0%{scale:1}35%{scale:1.1}60%{scale:.96}100%{scale:1}}
 .card .tried{align-self:flex-start;font-size:12px;font-weight:700;border-radius:999px;padding:3px 10px;background:var(--sunk);color:var(--muted)}
+.been-box{background:var(--surface);box-shadow:var(--shadow-sm);border-radius:20px;padding:14px 16px;margin:0 0 14px;display:flex;flex-direction:column;gap:10px}
+.been-sum{margin:0;font-size:15px;font-weight:600}
+.been-sum b{font:800 22px/1 var(--display)}
+.been-bar{height:10px;border-radius:999px;background:var(--sunk);overflow:hidden}
+.been-bar span{display:block;height:100%;width:0;background:var(--herb);border-radius:999px;transition:width .4s}
+.been-box .seg{flex-wrap:nowrap;box-shadow:none;background:var(--sunk)}
+.been-box .seg button{flex:1;padding:9px 6px;white-space:nowrap}
+.been-box .seg button[aria-pressed="true"]{background:var(--surface);color:var(--fg);box-shadow:var(--shadow-sm)}
+.been-box .seg b{font-weight:800;margin-left:3px}
+.been-tip{margin:0;font-size:13px;color:var(--muted)}
+.fcheck{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--herb);color:#fff;font-size:12px;font-weight:900;line-height:1;flex:none;vertical-align:-3px}
+.card .top .cname{display:flex;align-items:center;gap:7px;flex:1;min-width:0;text-align:left;justify-content:flex-start}
+button.tried{border:0;font:inherit;cursor:pointer}
+button.tried:hover{filter:brightness(.96)}
 .card .tags{display:flex;flex-wrap:wrap;gap:6px}
-.card .tried.founder{background:var(--sun-soft);color:var(--sun-ink,#7A5600)}
 .card .tried.yes{background:var(--herb-soft);color:var(--herb)}
 .card .tried.nope{background:var(--coral-soft);color:var(--coral-ink)}
 .card .sub .truck{background:var(--sun);color:#16293B;font-weight:700;padding:1px 9px;border-radius:999px}
@@ -411,6 +424,16 @@ nav.tabs .acct-who b{display:inline-block;margin-left:6px;background:var(--sun);
   <section class="view" id="view-explore" aria-label="Explore Hamilton" hidden>
     <h2>Explore Hamilton</h2>
     <p class="lede">Local, independent restaurants and takeout spots across Hamilton, Dundas, Ancaster, Stoney Creek, Waterdown and Binbrook. No big chains. Add any of them to your lists and Takeout can pick them.</p>
+    <div class="been-box">
+      <p class="been-sum" id="beenSum"></p>
+      <div class="been-bar" aria-hidden="true"><span id="beenBar"></span></div>
+      <div class="seg" role="group" aria-label="Been there">
+        <button type="button" data-tried="all" aria-pressed="true">All <b id="nAll"></b></button>
+        <button type="button" data-tried="yes" aria-pressed="false">✓ Been <b id="nYes"></b></button>
+        <button type="button" data-tried="no" aria-pressed="false">Not yet <b id="nNo"></b></button>
+      </div>
+      <p class="been-tip">Tap the status on any restaurant to switch it.<span id="fLegend"> <span class="fcheck" aria-hidden="true">✓</span> means the founder has been there.</span></p>
+    </div>
     <div class="filters">
       <div class="frow"><input id="q" type="search" placeholder="Search by name or food, e.g. shawarma" autocomplete="off" aria-label="Search places">
       <select id="area" aria-label="Area"><option value="">All areas</option></select></div>
@@ -424,11 +447,6 @@ nav.tabs .acct-who b{display:inline-block;margin-left:6px;background:var(--sun);
         <button type="button" data-price="1" aria-pressed="false">$</button>
         <button type="button" data-price="2" aria-pressed="false">$$</button>
         <button type="button" data-price="3" aria-pressed="false">$$$</button>
-      </div>
-      <div class="seg" role="group" aria-label="Tried">
-        <button type="button" data-tried="all" aria-pressed="true">Everything</button>
-        <button type="button" data-tried="yes" aria-pressed="false">✓ Tried</button>
-        <button type="button" data-tried="no" aria-pressed="false">Not tried yet</button>
       </div>
     </div>
     <p class="ecount" id="ecount"></p>
@@ -554,12 +572,20 @@ function calLinks(p, t){
   const o = "https://outlook.live.com/calendar/0/deeplink/compose?" + new URLSearchParams({path:"/calendar/action/compose", rru:"addevent", subject:title, startdt:isoLocal(start), enddt:isoLocal(end), location:where, body});
   return {g, o};
 }
-// Explore: "I've tried it" saves a visit to Places I've been (no rating; rate it there)
+// Explore: tapping the status switches been / not been. Not been: removes the visits (Undo brings them back)
+function toggleTried(pid){
+  const gone = S.items.filter(i => i.placeId === pid && (i.list === "been" || i.list === "tried"));
+  if (!gone.length) return markTried(pid);
+  S.items = S.items.filter(i => !gone.includes(i)); render();
+  gone.forEach(i => S.store.del(i.id).catch(()=>{}));
+  toast(`Marked ${gone[0].name} as not been yet`, () => { gone.forEach(i => { if (!S.items.some(x => x.id === i.id)){ S.items.push(i); S.store.put(i).catch(()=>{}); } }); render(); });
+}
+// Saves a visit to Places I've been (no rating; rate it there)
 function markTried(pid){
   const p = S.places.find(x => x.id === pid); if (!p) return;
   const it = {id: uid(), name: p.name, place: "", address: p.address, placeId: pid, list: "been", visitedAt: new Date().toISOString(), addedAt: new Date().toISOString()};
   S.items.push(it); render(); S.store.put(it).catch(()=>{});
-  toast(`Marked ${p.name} as tried. Rate it in My lists.`, () => remove(it.id));
+  toast(`Marked ${p.name} as been there. Rate it in My lists.`, () => { S.items = S.items.filter(i => i.id !== it.id); render(); S.store.del(it.id).catch(()=>{}); });
 }
 function confirmPick(){
   const p = S.pick; if (!p || p.confirmed) return;
@@ -952,6 +978,11 @@ function renderExplore(){
     if (i.list === "been"){ const t = tried.get(i.placeId); if (!t || (i.verdict && (!t.at || (i.visitedAt || "") > t.at))) tried.set(i.placeId, {verdict: i.verdict, at: i.visitedAt}); }
   });
   document.querySelectorAll("[data-tried]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.tried === S.f.tried)));
+  const nYes = S.places.filter(p => tried.has(p.id)).length, nAll = S.places.length;
+  $("#nAll").textContent = nAll; $("#nYes").textContent = nYes; $("#nNo").textContent = nAll - nYes;
+  $("#beenSum").innerHTML = `You've been to <b>${nYes}</b> of ${nAll} places · ${nAll - nYes} to go`;
+  $("#beenBar").style.width = (nAll ? nYes * 100 / nAll : 0) + "%";
+  $("#fLegend").hidden = !S.founderTried.size;
   const list = S.places.filter(p => (S.f.tried === "all" || (S.f.tried === "yes") === tried.has(p.id)) && (S.f.kind === "all" || p.kind === S.f.kind) && (!S.f.price || p.price === S.f.price) && (!S.f.area || areaOf(p) === S.f.area)
       && (!q || norm(p.name + " " + p.cuisine + " " + p.address).includes(q)))
     .sort((a,b) => (b.rating ?? 0) - (a.rating ?? 0) || (b.reviews ?? 0) - (a.reviews ?? 0));
@@ -964,12 +995,15 @@ function renderExplore(){
       : `<button class="btn" type="button" data-addplace="${p.id}|fav">+ Favorite</button><button class="btn" type="button" data-addplace="${p.id}|try">+ Want to try</button>`;
     const t = tried.get(p.id);
     const ft = S.founderTried.get(p.id);
-    const triedTag = `<div class="tags">${t ? `<span class="tried ${t.verdict === "nope" ? "nope" : "yes"}">✓ You tried it${t.verdict ? " · " + VERDICT[t.verdict] : ""}</span>` : `<span class="tried">Not tried yet</span>`}${ft !== undefined ? `<span class="tried founder">👑 Founder tried it${ft ? " · " + VERDICT[ft] : ""}</span>` : ""}</div>`;
+    const triedTag = `<div class="tags">${t
+      ? `<button type="button" class="tried ${t.verdict === "nope" ? "nope" : "yes"}" data-toggletried="${p.id}" aria-pressed="true" title="Tap if you haven't been here">✓ Been there${t.verdict ? " · " + VERDICT[t.verdict] : ""}</button>`
+      : `<button type="button" class="tried" data-toggletried="${p.id}" aria-pressed="false" title="Tap if you've been here">Not been yet · tap if you have</button>`}</div>`;
+    const fmark = ft !== undefined ? `<span class="fcheck" title="The founder has been here${ft ? " · " + VERDICT[ft] : ""}" aria-label="The founder has been here">✓</span>` : "";
     return `<article class="card">
-      <div class="top"><b>${esc(p.name)}</b><span class="price" title="Price level">${dollars(p)}</span></div>${triedTag}
+      <div class="top"><span class="cname"><b>${esc(p.name)}</b>${fmark}</span><span class="price" title="Price level">${dollars(p)}</span></div>${triedTag}
       <div class="sub">${p.rating == null ? `<span>New spot, no Google rating yet</span>` : `<span class="stars">${p.rating.toFixed(1)}</span>${p.reviews ? `<span>${p.reviews.toLocaleString()} Google reviews</span>` : `<span>on Google</span>`}`}<span>${esc(p.cuisine)}</span><span>${esc(areaOf(p))}</span>${truckUrl(p) ? `<span class="truck">🚚 Food truck</span>` : ""}</div>
       <div class="addr">${truckUrl(p) ? "Home base: " : ""}${esc(p.address)}</div>${crowd(p.id, 2)}
-      <div class="links">${btns}${t ? "" : `<button class="btn" type="button" data-triedit="${p.id}">✓ I've tried it</button>`}${truckUrl(p) ? `<a class="btn dark" href="${esc(truckUrl(p))}" target="_blank" rel="noopener">Where's the truck today? ↗</a>` : `<a class="btn" href="${esc(mapsUrl(p))}" target="_blank" rel="noopener">Map ↗</a>`}</div>
+      <div class="links">${btns}${truckUrl(p) ? `<a class="btn dark" href="${esc(truckUrl(p))}" target="_blank" rel="noopener">Where's the truck today? ↗</a>` : `<a class="btn" href="${esc(mapsUrl(p))}" target="_blank" rel="noopener">Map ↗</a>`}</div>
     </article>`;
   }).join("") : `<p class="empty-note">No places match. Try another search or price.</p>`;
 }
@@ -1010,7 +1044,7 @@ document.addEventListener("click", e => {
   else if (d.addplace){ const [pid, l] = d.addplace.split("|"); addPlace(pid, l); }
   else if (d.kind){ S.f.kind = d.kind; renderExplore(); }
   else if (d.tried){ S.f.tried = d.tried; renderExplore(); }
-  else if (d.triedit) markTried(d.triedit);
+  else if (d.toggletried) toggleTried(d.toggletried);
   else if (d.price !== undefined && b.closest("#view-explore")){ S.f.price = +d.price; renderExplore(); }
   else if (d.rate){ const [id, v] = d.rate.split("|"); rateVisit(id, v); }
   else if (d.loved) tried(d.loved, true);
