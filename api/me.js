@@ -1,8 +1,8 @@
 // GET /api/me -> {items, spinsLeft}; PUT /api/me {items} saves the signed-in person's lists, visits and ratings.
-// POST /api/me {action: "spin"} counts one spin against today's limit (3 a day; the founder is unlimited).
+// POST /api/me {action: "spin"} counts one spin against today's limit (5 a day with an account; the founder is unlimited).
 const { redis } = require("./_redis");
 const A = require("./_auth");
-const DAILY = 3;
+const DAILY = 5;
 
 async function spinsLeft(me) {
   if (me.founder) return null; // unlimited

@@ -42,7 +42,7 @@ document.body.insertAdjacentHTML("beforeend", `
   </form>
 </dialog>`);
 // Signed out: 1 spin a day; pressing Spin after it offers an account for 3
-T.SPINS.upsell = () => openAcct("signup", `Create an account to unlock ${T.DAILY} spins a day. Your lists, visits and ratings come with you too.`);
+T.SPINS.upsell = () => openAcct("signup", `You've used your free spins. Create an account for ${T.DAILY} spins a day. Your lists, visits and ratings come with you too.`);
 function openAcct(mode, sub){
   A.mode = mode || "login"; paintAcct(); $("#acctSub").textContent = sub || "Your lists, visits and ratings follow you to any device."; showPw(false); $("#acctErr").hidden = true;
   const d = $("#acct"); if (d.showModal){ if (!d.open) d.showModal(); } else d.setAttribute("open", "");

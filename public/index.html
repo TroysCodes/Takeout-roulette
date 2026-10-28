@@ -498,7 +498,7 @@ nav.tabs .acct-who b{display:inline-block;margin-left:6px;background:var(--sun);
   <form id="gateForm" novalidate>
     <div class="gate-wheel" aria-hidden="true">🎰</div>
     <h2 id="gateH">One quick thing before you spin!</h2>
-    <p>Pop in your email to unlock the <b>Spin</b> button. You only do this once.</p>
+    <p>You've had your free spins! Pop in your email to keep spinning. You only do this once.</p>
     <input id="gateEmail" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" aria-label="Your email" required>
     <p class="gate-err" id="gateErr" role="alert" hidden>That doesn't look like an email yet. Try again?</p>
     <label class="agree"><input type="checkbox" id="gateAgree"><span>I agree with all of the <a href="/privacy" target="_blank">privacy policy</a> and consent to an email once a week.</span></label>
@@ -851,10 +851,10 @@ $("#gateForm").addEventListener("submit", e => {
 $("#gateLater").addEventListener("click", closeGate);
 const csvCell = v => /[",\n]/.test(v) ? `"${String(v).replace(/"/g, '""')}"` : String(v);
 /* ---------- Spins per day: 1 signed out, 3 with an account; the owner spins as much as they like ---------- */
-const DAILY = 3;
+const DAILY = 5, FREE = 3; // spins a day with an account / without one
 const SPINS = {
   owner: false, account: false, upsell: null,
-  daily(){ return this.account ? DAILY : 1; },
+  daily(){ return this.account ? DAILY : FREE; },
   key: () => "spins-" + new Date().toLocaleDateString("en-CA"),
   used(){ return +(prefs.get(this.key()) || 0); },
   left(){ return this.owner ? Infinity : Math.max(0, this.daily() - this.used()); },
@@ -863,10 +863,11 @@ const SPINS = {
 let spinning = false;
 function spin(){
   if (spinning) return;
-  if (!GATE.ok){ openGate(); return; }
+  // Everyone gets FREE spins before being asked for an email (the website asks for an account instead)
+  if (!GATE.ok && SPINS.used() >= FREE && !SPINS.upsell){ openGate(); return; }
   if (!SPINS.left()){
     if (!SPINS.account && SPINS.upsell){ SPINS.upsell(); return; }
-    toast(SPINS.account ? `That's your ${SPINS.daily()} spins for today. Come back tomorrow for more!` : `That's your free spin for today. Sign in for ${DAILY} spins a day!`); render(); return;
+    toast(SPINS.account ? `That's your ${SPINS.daily()} spins for today. Come back tomorrow for more!` : `That's your ${FREE} free spins for today. Sign in for ${DAILY} spins a day!`); render(); return;
   }
   const pool = candidates(); if (!pool.length) return;
   SPINS.take();
@@ -1044,7 +1045,7 @@ function render(){
   const again = !!S.pick && left > 0 && pool.length > 0;
   $("#goLabel").textContent = canUp ? "Get more" : again ? "Spin again" : "Spin!";
   $("#go").classList.toggle("again", again);
-  $("#goSub").innerHTML = canUp ? `<i>That was your free spin today</i><i class="left">Create an account to unlock ${DAILY} spins</i>`
+  $("#goSub").innerHTML = canUp ? `<i>That's your ${FREE} free spins today</i><i class="left">Create an account for ${DAILY} spins a day</i>`
     : !left ? `<i>No spins left today</i><i class="left">${SPINS.account ? "Come back tomorrow!" : `Sign in for ${DAILY} spins a day`}</i>`
     : again ? (SPINS.owner ? `<i class="left">Unlimited spins</i>` : `<b>${left}</b><i>${left === 1 ? "spin" : "spins"} left today</i>`)
     : pool.length ? `<b>${pool.length.toLocaleString()}</b><i>${what} to choose from${pool.some(x => x.fusion) ? `, ${pool.filter(x => x.fusion).length} fusion` : ""}</i>${tally}`
