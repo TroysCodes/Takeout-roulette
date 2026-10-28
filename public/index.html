@@ -357,7 +357,6 @@ nav.tabs .acct-who b{display:inline-block;margin-left:6px;background:var(--sun);
         <a href="#pick" data-view="pick"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7"/><path d="M6 9.5V20h12V9.5"/><path d="M10 20v-5h4v5"/></svg>Home</a>
         <a href="#lists" data-view="lists"><svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/></svg>My lists</a>
         <a href="#explore" data-view="explore"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></svg>Explore</a>
-        <a href="#map" data-view="map"><svg viewBox="0 0 24 24"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></svg>Map</a>
       </nav>
     </div>
   </header>
@@ -440,7 +439,12 @@ nav.tabs .acct-who b{display:inline-block;margin-left:6px;background:var(--sun);
         <button type="button" data-tried="yes" aria-pressed="false">✓ Been <b id="nYes"></b></button>
         <button type="button" data-tried="no" aria-pressed="false">Not yet <b id="nNo"></b></button>
       </div>
-      <p class="been-tip">Tap the status on any restaurant to switch it.<span id="fLegend"> <span class="fcheck" aria-hidden="true">✓</span> <b class="fverified" style="margin:0">Verified</b> means the founder has been there.</span></p>
+      <div class="seg" role="group" aria-label="Verified by the founder" id="verSeg">
+        <button type="button" data-ver="all" aria-pressed="true">All</button>
+        <button type="button" data-ver="yes" aria-pressed="false"><span class="fcheck" aria-hidden="true">✓</span> Verified <b id="nVer"></b></button>
+        <button type="button" data-ver="no" aria-pressed="false">Not verified <b id="nUnver"></b></button>
+      </div>
+      <p class="been-tip">Tap the status on any restaurant to switch it.<span id="fLegend" style="display:block;margin-top:4px"><span class="fcheck" aria-hidden="true">✓</span> <b class="fverified" style="margin:0">Verified</b> means the founder has been there.</span></p>
     </div>
     <div class="filters">
       <div class="frow"><input id="q" type="search" placeholder="Search by name or food, e.g. shawarma" autocomplete="off" aria-label="Search places">
@@ -502,8 +506,8 @@ const IDEAS = {
   fav: ["Pizza","Burgers","Tacos","Sushi","Chinese","Thai curry","Fried chicken","Burritos"],
   try: ["Ethiopian","Pho","Korean BBQ","Greek gyros","Indian thali","Ramen","Poke bowl","Lebanese"]
 };
-const S = { items: [], places: [], placesState: "loading", pool: "all", craving: "", pick: null, order: 0, store: null, view: "pick", editing: null, f: {kind:"all", price:0, q:"", area:"", tried:"all"}, founderTried: new Map() };
-const VIEWS = ["pick","lists","explore","map"];
+const S = { items: [], places: [], placesState: "loading", pool: "all", craving: "", pick: null, order: 0, store: null, view: "pick", editing: null, f: {kind:"all", price:0, q:"", area:"", tried:"all", ver:"all"}, founderTried: new Map() };
+const VIEWS = ["pick","lists","explore"]; // Map tab removed at Troy's request; cards keep their Map ↗ links
 
 /* ---------- Storage: local first, account (db) when available ---------- */
 const local = {
@@ -1015,8 +1019,14 @@ function renderExplore(){
   $("#nAll").textContent = nAll; $("#nYes").textContent = nYes; $("#nNo").textContent = nAll - nYes;
   $("#beenSum").innerHTML = `You've been to <b>${nYes}</b> of ${nAll} places · ${nAll - nYes} to go`;
   $("#beenBar").style.width = (nAll ? nYes * 100 / nAll : 0) + "%";
-  $("#fLegend").hidden = !S.founderTried.size;
-  const list = S.places.filter(p => (S.f.tried === "all" || (S.f.tried === "yes") === tried.has(p.id)) && (S.f.kind === "all" || p.kind === S.f.kind) && (!S.f.price || p.price === S.f.price) && (!S.f.area || areaOf(p) === S.f.area)
+  // Verified = the founder has been; for the founder that's their own been list
+  const ver = S.founderTried.size ? S.founderTried : SPINS.owner ? tried : null;
+  $("#fLegend").hidden = $("#verSeg").hidden = !ver;
+  if (!ver) S.f.ver = "all";
+  document.querySelectorAll("[data-ver]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.ver === S.f.ver)));
+  const nVer = ver ? S.places.filter(p => ver.has(p.id)).length : 0;
+  $("#nVer").textContent = nVer; $("#nUnver").textContent = nAll - nVer;
+  const list = S.places.filter(p => (S.f.tried === "all" || (S.f.tried === "yes") === tried.has(p.id)) && (S.f.ver === "all" || (S.f.ver === "yes") === ver.has(p.id)) && (S.f.kind === "all" || p.kind === S.f.kind) && (!S.f.price || p.price === S.f.price) && (!S.f.area || areaOf(p) === S.f.area)
       && (!q || norm(p.name + " " + p.cuisine + " " + p.address).includes(q)))
     .sort((a,b) => (b.rating ?? 0) - (a.rating ?? 0) || (b.reviews ?? 0) - (a.reviews ?? 0));
   $("#ecount").textContent = `${list.length} of ${S.places.length} places`;
@@ -1027,7 +1037,7 @@ function renderExplore(){
       ? `<span class="btn in">In ${inList === "fav" ? "Favorites" : "Want to try"}</span>`
       : `<button class="btn" type="button" data-addplace="${p.id}|fav">+ Favorite</button><button class="btn" type="button" data-addplace="${p.id}|try">+ Want to try</button>`;
     const t = tried.get(p.id);
-    const ft = S.founderTried.get(p.id);
+    const ft = S.founderTried.size ? S.founderTried.get(p.id) : SPINS.owner && tried.has(p.id) ? (tried.get(p.id).verdict || null) : undefined;
     const triedTag = `<div class="tags">${t
       ? `<button type="button" class="tried ${t.verdict === "nope" ? "nope" : "yes"}" data-toggletried="${p.id}" aria-pressed="true" title="Tap if you haven't been here">✓ Been there${t.verdict ? " · " + VERDICT[t.verdict] : ""}</button>`
       : `<button type="button" class="tried" data-toggletried="${p.id}" aria-pressed="false" title="Tap if you've been here">Not been yet · tap if you have</button>`}</div>`;
@@ -1079,6 +1089,7 @@ document.addEventListener("click", e => {
   else if (d.addplace){ const [pid, l] = d.addplace.split("|"); addPlace(pid, l); }
   else if (d.kind){ S.f.kind = d.kind; renderExplore(); }
   else if (d.tried){ S.f.tried = d.tried; renderExplore(); }
+  else if (d.ver){ S.f.ver = d.ver; renderExplore(); }
   else if (d.toggletried) toggleTried(d.toggletried);
   else if (d.price !== undefined && b.closest("#view-explore")){ S.f.price = +d.price; renderExplore(); }
   else if (d.rate){ const [id, v] = d.rate.split("|"); rateVisit(id, v); }
