@@ -149,9 +149,24 @@ if (gateForm && !$("#gateAcct")){
 }
 
 // Visitor count for the founder dashboard: once per browser tab, with the anonymous browser id
+// The founder's devices (owner flag) are skipped; the server also skips a signed-in founder.
 try {
-  const id = localStorage.getItem("takeout-anon");
-  if (id && !sessionStorage.getItem("tr-visit")){ sessionStorage.setItem("tr-visit", "1"); api("/api/visit", {method: "POST", body: JSON.stringify({id})}).catch(() => {}); }
+  const id = localStorage.getItem("takeout-anon"), me = () => T.prefs.get("owner") === "1" || (A.user && A.user.founder);
+  if (id && !me()){
+    if (!sessionStorage.getItem("tr-visit")){ sessionStorage.setItem("tr-visit", "1"); api("/api/visit", {method: "POST", body: JSON.stringify({id})}).catch(() => {}); }
+    // Time on site: count seconds only while the tab is in view; send every 30s and when leaving
+    let shown = document.visibilityState === "visible" ? Date.now() : 0, owed = 0;
+    const tally = () => { if (shown){ owed += (Date.now() - shown) / 1000; shown = Date.now(); } };
+    const send = beacon => {
+      tally(); const secs = Math.round(owed); if (secs < 1 || me()) return; owed -= secs;
+      const body = JSON.stringify({id, secs});
+      if (beacon && navigator.sendBeacon) navigator.sendBeacon("/api/visit", new Blob([body], {type: "application/json"}));
+      else api("/api/visit", {method: "POST", body}).catch(() => {});
+    };
+    setInterval(() => send(false), 30000);
+    document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") shown = Date.now(); else { send(true); shown = 0; } });
+    addEventListener("pagehide", () => send(true));
+  }
 } catch {}
 
 // Restaurants the founder has tried (👑 on Explore). The founder sees his own as "You tried it".

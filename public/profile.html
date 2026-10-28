@@ -74,7 +74,7 @@ textarea{width:100%;min-height:140px;margin-top:12px;font:14px ui-monospace,mono
   <h2>Founder tools</h2>
   <p class="sub" style="margin-bottom:12px">Only your founder account can see this. Visitors, email sign-ups and restaurant feedback, each kept separate.</p>
   <div class="box" id="visits" hidden style="margin-bottom:12px">
-    <div class="head"><strong>Visitors</strong><span class="count" id="vMonth"></span></div>
+    <div class="head"><strong>Visitors <small style="font-weight:600;color:var(--muted)">(not counting you)</small></strong><span class="count" id="vMonth"></span></div>
     <div class="stats" id="vStats" style="margin-top:10px"></div>
   </div>
   <div class="tabs" id="tabs" role="tablist" hidden>
@@ -134,7 +134,8 @@ async function loadVisits(){
   if (!r || !r.ok) return;
   const s = await r.json(), mon = k => new Date(k + "-15").toLocaleDateString(undefined, {month: "long"});
   $("#vMonth").textContent = mon(s.month);
-  $("#vStats").innerHTML = `<div><b>${s.thisMonth.visitors}</b><span>visitors this month</span></div><div><b>${s.today}</b><span>visitors today</span></div><div><b>${s.thisMonth.views}</b><span>visits this month</span></div><div><b>${s.lastMonth.visitors}</b><span>visitors in ${mon(s.last)}</span></div><div><b>${s.accounts}</b><span>accounts</span></div>`;
+  const dur = x => { x = Math.round(x || 0); return x < 60 ? x + "s" : x < 3600 ? Math.floor(x / 60) + "m " + (x % 60) + "s" : Math.floor(x / 3600) + "h " + Math.floor(x % 3600 / 60) + "m"; };
+  $("#vStats").innerHTML = `<div><b>${s.last4 ?? 0}</b><span>visitors in the last 4 hours</span></div><div><b>${s.thisMonth.visitors}</b><span>visitors this month</span></div><div><b>${s.today}</b><span>visitors today</span></div><div><b>${dur(s.todayAvgSecs)}</b><span>avg time per visitor today</span></div><div><b>${dur(s.thisMonth.avgSecs)}</b><span>avg time per visitor this month</span></div><div><b>${dur(s.thisMonth.secs)}</b><span>total time on site this month</span></div><div><b>${s.thisMonth.views}</b><span>visits this month</span></div><div><b>${s.lastMonth.visitors}</b><span>visitors in ${mon(s.last)}</span></div><div><b>${s.accounts}</b><span>accounts</span></div>`;
   $("#visits").hidden = false;
 }
 let FB = [];
