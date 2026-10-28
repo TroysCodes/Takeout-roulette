@@ -736,32 +736,54 @@ function renderFoods(){
   const typed = S.craving.trim() && !FOODS.some(f => f[1] === S.craving);
   $("#foods").innerHTML = FOODS.map(([label, q, icon]) => `<button type="button" class="food" data-food="${esc(q)}" aria-pressed="${!typed && S.craving === q}"><span aria-hidden="true">${icon}</span>${esc(label)}</button>`).join("");
 }
-// Typed location: town, neighbourhood, street or postal code (first 3), matched against each address
-const HOODS = {
-  "Downtown Hamilton": {fsa: ["L8P","L8R","L8N"]}, "Westdale": {fsa: ["L8S"]}, "McMaster": {fsa: ["L8S"]},
-  "Locke Street": {st: ["locke st"]}, "James Street North": {st: ["james st n"]}, "Ottawa Street": {st: ["ottawa st"]},
-  "Concession Street": {st: ["concession st"]}, "Barton Village": {st: ["barton st e"]}, "International Village": {st: ["king st e"]},
-  "North End": {fsa: ["L8L"]}, "Durand": {fsa: ["L8P"]}, "Kirkendall": {fsa: ["L8P"], st: ["locke st"]}, "Crown Point": {fsa: ["L8H"]},
-  "East Hamilton": {fsa: ["L8H","L8K"]}, "Hamilton Mountain": {fsa: ["L8T","L8V","L8W","L9A","L9B","L9C","L9K"], st: ["upper ","rymal","stone church","mohawk","fennell","concession st"]},
-  "Stoney Creek": {fsa: ["L8E","L8G","L8J"]}, "Ancaster": {fsa: ["L9G"]}, "Dundas": {fsa: ["L9H"]}, "Waterdown": {fsa: ["L8B"]}, "Binbrook": {}
-};
-const ALIASES = {"downtown": "Downtown Hamilton", "the mountain": "Hamilton Mountain", "mountain": "Hamilton Mountain", "mac": "McMaster", "locke": "Locke Street", "james north": "James Street North", "james st n": "James Street North", "ottawa st": "Ottawa Street", "concession": "Concession Street", "barton": "Barton Village"};
+// Typed location: find its spot on the map, then keep places within 10 km.
+// Places have no saved coordinates, so each one gets its postal area's centre (FSA), or a hand-placed spot below.
+const RADIUS_KM = 10;
+const FSA_LL = {L8P:[43.255,-79.885],L8R:[43.262,-79.873],L8N:[43.250,-79.862],L8L:[43.265,-79.845],L8M:[43.248,-79.835],L8H:[43.245,-79.800],L8K:[43.222,-79.787],
+  L8E:[43.225,-79.760],L8G:[43.218,-79.725],L8J:[43.195,-79.765],L8S:[43.258,-79.915],L8T:[43.215,-79.830],L8V:[43.225,-79.855],L8W:[43.190,-79.845],
+  L9A:[43.230,-79.870],L9B:[43.195,-79.890],L9C:[43.220,-79.900],L9K:[43.215,-79.940],L9G:[43.218,-79.985],L9H:[43.265,-79.955],L8B:[43.336,-79.880]};
+const PLACE_LL = {"antonino-s":[43.261,-79.865],"aroma-a-mexico":[43.255,-79.887],"doughbox-locke":[43.255,-79.887],"atami-sushi":[43.188,-79.808],"carlo-s-pizza-grill":[43.191,-79.818],
+  "smilee-s-shawarma":[43.190,-79.814],"grind-hamburger":[43.193,-79.826],"breezy-corners-freelton":[43.386,-80.036],"chow-bella":[43.250,-79.869],"cowabunga-pizzeria":[43.260,-79.871],
+  "el-cabron-cantina":[43.233,-79.858],"el-destino-mexican-street-food":[43.318,-79.935],"el-grito-mexicano":[43.267,-79.866],"fuel-grill":[43.266,-79.866],"mccallisters":[43.264,-79.853],
+  "gaggling-goose-bar-grill":[43.128,-79.808],"silver-wok":[43.120,-79.802],"the-binbrook-grill":[43.121,-79.795],"tito-s-pizza-and-wings":[43.110,-79.810],"galaxy-burger":[43.222,-79.708],
+  "highway-burger":[43.208,-79.910],"hot-and-juicy":[43.262,-79.905],"joshys-good-eats":[43.250,-79.818],"juicy-birds":[43.238,-79.857],"the-dirty-south":[43.238,-79.857],"rosie-s-burgers":[43.238,-79.857],
+  "marciano-s-pasta-cafe":[43.333,-79.893],"thai-in-waterdown":[43.336,-79.877],"sushi-ya":[43.336,-79.879],"mediterranean-breeze":[43.250,-79.867],"mels-deli":[43.257,-79.896],
+  "ooey-gooey-s":[43.258,-79.876],"persona":[43.256,-79.869],"piano-piano-hamilton":[43.256,-79.866],"utamami":[43.256,-79.866],"pizza-fiamma":[43.257,-79.880],"thai-tamarind-ancaster":[43.215,-80.010]};
+const TOWN_LL = {Hamilton:[43.2557,-79.8711],Dundas:[43.266,-79.956],Ancaster:[43.219,-79.987],"Stoney Creek":[43.217,-79.755],Binbrook:[43.122,-79.805],Waterdown:[43.335,-79.890],
+  Hannon:[43.190,-79.812],Freelton:[43.386,-80.036],"Mount Hope":[43.155,-79.906],Greensville:[43.276,-79.990],Flamborough:[43.330,-79.950],Winona:[43.210,-79.640],Burlington:[43.325,-79.799],Caledonia:[43.073,-79.953]};
+const PLACES_LL = {...TOWN_LL, "Downtown Hamilton":[43.2557,-79.8711],Westdale:[43.262,-79.910],McMaster:[43.261,-79.919],"Locke Street":[43.255,-79.887],"James Street North":[43.265,-79.867],
+  "Ottawa Street":[43.239,-79.809],"Concession Street":[43.238,-79.857],"Barton Village":[43.263,-79.850],"International Village":[43.255,-79.862],"Hess Village":[43.257,-79.876],
+  "North End":[43.274,-79.861],Durand:[43.251,-79.876],Kirkendall:[43.254,-79.890],"Crown Point":[43.246,-79.810],"Gage Park":[43.243,-79.829],"East Hamilton":[43.232,-79.792],
+  "Red Hill":[43.222,-79.787],"Hamilton Mountain":[43.215,-79.865],"Lime Ridge Mall":[43.218,-79.862],Meadowlands:[43.215,-79.945]};
+const ALIASES = {downtown:"Downtown Hamilton","the mountain":"Hamilton Mountain",mountain:"Hamilton Mountain",mac:"McMaster","mcmaster university":"McMaster",locke:"Locke Street",
+  "james north":"James Street North","james st n":"James Street North","ottawa st":"Ottawa Street",concession:"Concession Street","concession st":"Concession Street",
+  "barton st e":"Barton Village",limeridge:"Lime Ridge Mall","limeridge mall":"Lime Ridge Mall","hess":"Hess Village","westdale village":"Westdale"};
+const fsaOf = a => ((a || "").toUpperCase().match(/\b(L\d[A-Z])\s?\d[A-Z]\d/) || [])[1];
+function placeLL(pl){ return PLACE_LL[pl.id] || FSA_LL[fsaOf(pl.address)] || (TOWN_LL[areaOf(pl)] || null); }
+function kmBetween(a, b){ const r = Math.PI / 180, dLat = (b[0] - a[0]) * r, dLng = (b[1] - a[1]) * r;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(a[0] * r) * Math.cos(b[0] * r) * Math.sin(dLng / 2) ** 2; return 12742 * Math.asin(Math.sqrt(h)); }
+const tidy = s => norm(s).replace(/[.,]/g, "").replace(/\bstreet\b/g, "st").replace(/\bnorth\b/g, "n").replace(/\bsouth\b/g, "s").replace(/\beast\b/g, "e").replace(/\bwest\b/g, "w").replace(/\s+/g, " ").trim();
+// Returns {name, ll} for what was typed, or null if we can't place it
+function whereCenter(raw){
+  const q = tidy(raw); if (!q) return null;
+  const known = Object.keys(PLACES_LL).find(k => tidy(k) === q) || ALIASES[q];
+  if (known) return {name: known, ll: PLACES_LL[known]};
+  const pcq = q.replace(/\s/g, "").toUpperCase();
+  if (/^L\d[A-Z]/.test(pcq) && FSA_LL[pcq.slice(0, 3)]) return {name: raw.trim().toUpperCase(), ll: FSA_LL[pcq.slice(0, 3)]};
+  const part = q.length > 3 && Object.keys(PLACES_LL).find(k => tidy(k).startsWith(q));
+  if (part) return {name: part, ll: PLACES_LL[part]};
+  // A street or anything else in an address: centre on the places that match it
+  const hits = S.places.filter(pl => tidy(pl.address).includes(q) || tidy(pl.name) === q).map(placeLL).filter(Boolean);
+  if (hits.length) return {name: raw.trim(), ll: [hits.reduce((s, x) => s + x[0], 0) / hits.length, hits.reduce((s, x) => s + x[1], 0) / hits.length]};
+  return {name: raw.trim(), ll: null};
+}
 function whereTest(raw){
-  const q = norm(raw).replace(/\bstreet\b/g, "st").replace(/\bnorth\b/g, "n").replace(/\bsouth\b/g, "s").replace(/\beast\b/g, "e").replace(/\bwest\b/g, "w").trim();
-  if (!q) return null;
-  const hoodName = Object.keys(HOODS).find(h => norm(h).replace(/\bstreet\b/g, "st").replace(/\bnorth\b/g, "n") === q) || ALIASES[q] || ALIASES[norm(raw).trim()];
-  const h = hoodName ? HOODS[hoodName] : null;
-  return pl => {
-    const a = norm(pl.address || ""), pc = ((pl.address || "").toUpperCase().match(/\b(L\d[A-Z])\s?\d[A-Z]\d/) || [])[1];
-    if (h && ((h.fsa || []).includes(pc) || (h.st || []).some(t => a.includes(t)) || a.includes(", " + norm(hoodName)))) return true;
-    if (h) return false;
-    if (/^l\d[a-z]/.test(q.replace(/\s/g, "")) && pc && q.replace(/\s/g, "").toUpperCase().startsWith(pc)) return true;
-    return a.includes(q) || norm(areaOf(pl)) === q;
-  };
+  const c = whereCenter(raw); if (!c) return null;
+  return pl => { const ll = c.ll && placeLL(pl); return !!ll && kmBetween(c.ll, ll) <= RADIUS_KM; };
 }
 function candidates(){
   const test = whereTest(S.where || "");
-  const near = test ? candidatesAll().filter(x => { const pl = placeOf(x); return pl ? test(pl) : norm(x.address || "").includes(norm(S.where)); }) : candidatesAll();
+  const near = test ? candidatesAll().filter(x => { const pl = placeOf(x); return pl && test(pl); }) : candidatesAll();
   return byFood(near);
 }
 function byFood(all){
@@ -987,8 +1009,8 @@ function render(){
     : `<i>${S.where.trim() ? `No matching spots near ${esc(S.where.trim())}` : S.craving.trim() ? `No ${esc((FOODS.find(f => f[1] === S.craving) || [S.craving.trim()])[0])} spots here` : S.pool === "all" && S.placesState === "loading" ? "Loading restaurants…" : "Add to your lists first"}</i>`;
   $("#craveClear").hidden = !$("#crave").value;
   $("#whereClear").hidden = !$("#where").value;
-  if (S.where.trim()){ const n = pool.length; $("#whereN").hidden = false; $("#whereN").textContent = n ? `${n} ${n === 1 ? "spot" : "spots"} in or near "${S.where.trim()}"` : `Nothing found for "${S.where.trim()}". Try a town, neighbourhood or street.`; } else $("#whereN").hidden = true;
-  const wl = [...new Set([...S.places.map(areaOf), ...Object.keys(HOODS)])].sort().map(a => `<option value="${esc(a)}"></option>`).join("");
+  if (S.where.trim()){ const n = pool.length; $("#whereN").hidden = false; const c = whereCenter(S.where); $("#whereN").textContent = !c.ll ? `Can't find "${S.where.trim()}" yet. Try a town, neighbourhood, street or postal code.` : `${n} ${n === 1 ? "spot" : "spots"} within ${RADIUS_KM} km of ${c.name}`; } else $("#whereN").hidden = true;
+  const wl = [...new Set([...S.places.map(areaOf), ...Object.keys(PLACES_LL)])].sort().map(a => `<option value="${esc(a)}"></option>`).join("");
   if ($("#whereNames").innerHTML !== wl) $("#whereNames").innerHTML = wl;
   renderFoods();
   const cz = [...new Set(S.places.map(p => p.cuisine))].sort().map(c => `<option value="${esc(c)}"></option>`).join("");
