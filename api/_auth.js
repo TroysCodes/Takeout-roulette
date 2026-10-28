@@ -4,6 +4,8 @@ const crypto = require("crypto");
 const { redis } = require("./_redis");
 
 const COOKIE = "tr_session";
+// The exact words people agree to when they give their email
+const CONSENT_TEXT = "I agree with all of the privacy policy and consent to an email once a week.";
 const DAYS = 30;
 const emailOk = v => typeof v === "string" && v.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v);
 const normEmail = v => String(v || "").trim().toLowerCase();
@@ -63,4 +65,4 @@ async function isAdmin(req) {
 // Toronto calendar date, so daily limits reset at local midnight
 const today = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Toronto" }).format(new Date());
 
-module.exports = { emailOk, normEmail, uidOf, isFounder, hashPassword, checkPassword, startSession, endSession, currentUser, isAdmin, today };
+module.exports = { CONSENT_TEXT, emailOk, normEmail, uidOf, isFounder, hashPassword, checkPassword, startSession, endSession, currentUser, isAdmin, today };

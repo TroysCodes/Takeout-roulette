@@ -14,6 +14,10 @@ document.head.insertAdjacentHTML("beforeend", `<style>
 .pw-wrap{position:relative;display:flex;flex-direction:column}
 .pw-wrap input{padding-left:64px;padding-right:64px}
 .pw-eye{position:absolute;right:8px;top:calc(50% + 2px);transform:translateY(-50%);font:700 14px Figtree,system-ui,sans-serif;border:0;border-radius:999px;padding:7px 12px;background:var(--surface,#fff);color:var(--fg);box-shadow:0 0 0 1.5px var(--line);cursor:pointer}
+.gate .agree{display:flex;gap:10px;align-items:flex-start;text-align:left;font-size:14px;line-height:1.4;color:var(--fg);cursor:pointer;margin:2px 4px}
+.gate .agree[hidden]{display:none}
+.gate .agree input{appearance:auto;-webkit-appearance:checkbox;width:20px;height:20px;flex:none;margin:1px 0 0;padding:0;box-shadow:none;accent-color:var(--chili);border-radius:4px}
+.gate .agree a{color:inherit;font-weight:700}
 .pw-eye:focus-visible{outline:2px solid var(--chili);outline-offset:2px}
 </style>`);
 document.body.insertAdjacentHTML("beforeend", `
@@ -27,6 +31,7 @@ document.body.insertAdjacentHTML("beforeend", `
       <input id="acctPw" type="password" autocomplete="current-password" placeholder="Password (8+ characters)" aria-label="Password" required minlength="8">
       <button type="button" class="pw-eye" id="acctEye" aria-label="Show password" aria-pressed="false">Show</button>
     </div>
+    <label class="agree" id="acctAgreeRow" hidden><input type="checkbox" id="acctAgree"><span>I agree with all of the <a href="/privacy" target="_blank">privacy policy</a> and consent to an email once a week.</span></label>
     <p class="gate-err" id="acctErr" role="alert" hidden></p>
     <button class="btn go-green gate-go" type="submit" id="acctGo">Sign in</button>
     <button class="gate-later" type="button" id="acctSwap">New here? Create an account</button>
@@ -45,9 +50,12 @@ function paintAcct(){
   $("#acctGo").textContent = up ? "Create account 🎉" : "Sign in";
   $("#acctSwap").textContent = up ? "Already have an account? Sign in" : "New here? Create an account";
   $("#acctPw").autocomplete = up ? "new-password" : "current-password";
+  $("#acctAgreeRow").hidden = !up;
 }
 $("#acctSwap").addEventListener("click", () => { A.mode = A.mode === "signup" ? "login" : "signup"; paintAcct(); $("#acctErr").hidden = true; });
 $("#acctClose").addEventListener("click", closeAcct);
+// Ticking the consent box clears the "please tick" message
+[["#acctAgree", "#acctErr"], ["#gateAgree", "#gateErr"]].forEach(([box, msg]) => $(box)?.addEventListener("change", () => { if ($(box).checked) $(msg).hidden = true; }));
 function showPw(on){ $("#acctPw").type = on ? "text" : "password"; $("#acctEye").textContent = on ? "Hide" : "Show"; $("#acctEye").setAttribute("aria-pressed", String(on)); $("#acctEye").setAttribute("aria-label", on ? "Hide password" : "Show password"); }
 $("#acctEye").addEventListener("click", () => { showPw($("#acctPw").type === "password"); $("#acctPw").focus(); });
 $("#acctForm").addEventListener("submit", async e => {
@@ -55,8 +63,9 @@ $("#acctForm").addEventListener("submit", async e => {
   const email = $("#acctEmail").value.trim(), password = $("#acctPw").value;
   const err = m => { $("#acctErr").textContent = m; $("#acctErr").hidden = false; };
   if (password.length < 8) return err("Passwords need at least 8 characters.");
+  if (A.mode === "signup" && !$("#acctAgree").checked) return err("Please tick the box to agree first.");
   $("#acctGo").disabled = true;
-  const r = await api("/api/auth", {method: "POST", body: JSON.stringify({action: A.mode, email, password})}).catch(() => null);
+  const r = await api("/api/auth", {method: "POST", body: JSON.stringify({action: A.mode, email, password, consent: A.mode === "signup" && $("#acctAgree").checked})}).catch(() => null);
   $("#acctGo").disabled = false;
   if (!r || !r.ok) return err((r && r.body.error) || "Couldn't reach the server. Try again.");
   $("#acctPw").value = ""; showPw(false); closeAcct();

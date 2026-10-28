@@ -2,6 +2,7 @@
 // POST /api/auth {action: "signup" | "login" | "logout", email, password}
 const { redis, NoDatabase } = require("./_redis");
 const A = require("./_auth");
+const { CONSENT_TEXT } = A;
 
 module.exports = async (req, res) => {
   res.setHeader("Cache-Control", "no-store");
@@ -21,10 +22,12 @@ module.exports = async (req, res) => {
     if (tries > 10) return res.status(429).json({ error: "Too many tries. Wait 15 minutes and try again." });
 
     if (b.action === "signup") {
+      if (b.consent !== true) return res.status(400).json({ error: "Please tick the box to agree first." });
       const rec = { ...A.hashPassword(password), at: new Date().toISOString() };
       const created = await redis("HSETNX", "users", email, JSON.stringify(rec));
       if (!created) return res.status(409).json({ error: "There's already an account with that email. Try signing in." });
       await redis("HSETNX", "signups", email, rec.at); // an account counts as an email sign-up too
+      await redis("HSET", "consent", email, JSON.stringify({ at: rec.at, via: "account", text: CONSENT_TEXT }));
     } else if (b.action === "login") {
       const raw = await redis("HGET", "users", email);
       const rec = raw && JSON.parse(raw);

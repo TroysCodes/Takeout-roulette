@@ -161,6 +161,9 @@ h3{font-family:var(--display);font-weight:700;font-size:20px;margin:0}
 .gate-go{justify-content:center;font-size:17px;padding:15px 18px;font-family:var(--display)}
 .gate-later{border:0;background:none;color:var(--muted);font:inherit;font-weight:600;text-decoration:underline;padding:4px;cursor:pointer}
 .gate .gate-fine{font-size:12px}
+.gate .agree{display:flex;gap:10px;align-items:flex-start;text-align:left;font-size:14px;line-height:1.4;color:var(--fg);cursor:pointer;margin:2px 4px}
+.gate .agree input{appearance:auto;-webkit-appearance:checkbox;width:20px;height:20px;flex:none;margin:1px 0 0;padding:0;box-shadow:none;accent-color:var(--chili);border-radius:4px}
+.gate .agree a{color:inherit;font-weight:700}
 .su-acts{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}
 .su-text{width:100%;min-height:90px;border:0;border-radius:14px;padding:10px 12px;margin-bottom:10px;font:13px/1.5 var(--mono,monospace);background:var(--surface);color:var(--fg);box-shadow:inset 0 0 0 1.5px var(--line)}
 .signups{list-style:none;margin:0;padding:0;display:grid;gap:6px}
@@ -441,9 +444,10 @@ nav.tabs .acct-who b{display:inline-block;margin-left:6px;background:var(--sun);
     <p>Pop in your email to unlock the <b>Spin</b> button. You only do this once.</p>
     <input id="gateEmail" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" aria-label="Your email" required>
     <p class="gate-err" id="gateErr" role="alert" hidden>That doesn't look like an email yet. Try again?</p>
+    <label class="agree"><input type="checkbox" id="gateAgree"><span>I agree with all of the <a href="/privacy" target="_blank">privacy policy</a> and consent to an email once a week.</span></label>
     <button class="btn go-green gate-go" type="submit">Unlock Spin 🎉</button>
     <button class="gate-later" type="button" id="gateLater">Not now</button>
-    <p class="gate-fine">Only the owner of this app can see your email.</p>
+    <p class="gate-fine">Only the owner of this app can see your email. Unsubscribe any time.</p>
   </form>
 </dialog>
 <div class="toast" id="toast" role="status" aria-live="polite"><span id="toastMsg"></span><button type="button" id="toastUndo">Undo</button></div>
@@ -679,9 +683,10 @@ function closeGate(){ const d = $("#gate"); if (d.close && d.open) d.close(); el
 $("#gateForm").addEventListener("submit", e => {
   e.preventDefault();
   const email = $("#gateEmail").value.trim().toLowerCase();
-  if (!emailOk(email)){ $("#gateErr").hidden = false; $("#gateEmail").focus(); return; }
+  if (!emailOk(email)){ $("#gateErr").textContent = "That doesn't look like an email yet. Try again?"; $("#gateErr").hidden = false; $("#gateEmail").focus(); return; }
+  if (!$("#gateAgree").checked){ $("#gateErr").textContent = "Please tick the box to agree first."; $("#gateErr").hidden = false; $("#gateAgree").focus(); return; }
   GATE.ok = true; prefs.set("gateEmail", email);
-  fetch("/api/signup", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({email})}).catch(() => {});
+  fetch("/api/signup", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({email, consent: true})}).catch(() => {});
   closeGate(); toast("Unlocked! Let's spin 🎉"); setTimeout(spin, 250);
 });
 $("#gateLater").addEventListener("click", closeGate);
