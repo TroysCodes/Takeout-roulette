@@ -9,7 +9,7 @@
 <meta name="description" content="Can't decide what to eat? Tap the button for a local Hamilton takeout spot.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🥡</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gabarito:wght@600;700;800;900&family=Figtree:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Gabarito:wght@600;700;800;900&family=Figtree:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap">
 <style>
 /* Layout: phone app, four views (Spin, My lists, Explore, Map) above a floating pill tab bar. Spin is the hero: a 1-2-3 around one roulette-wheel button. Max 560px wide.
    Look: cream ground, bright sky blue as the main colour, paler blues for the second layer, sun / coral / mint as playful pops (they make up the wheel). */
@@ -357,6 +357,69 @@ nav.tabs button.acct-item:hover,nav.tabs a.acct-item:hover{background:var(--sunk
 nav.tabs .acct-who{border-top:1px solid var(--line);border-radius:0;margin-top:4px;padding-top:14px;color:var(--muted);font-size:13px;font-weight:600;overflow-wrap:anywhere}
 nav.tabs .acct-who b{display:inline-block;margin-left:6px;background:var(--sun);color:#16293B;border-radius:999px;padding:1px 8px;font-size:11px}
 #menu > button#acctIn{border-top:1px solid var(--line);border-radius:0 0 12px 12px;margin-top:4px;padding-top:14px}
+
+/* ===== "You hungry?" sky redesign (preview) ===== */
+:root{--sky1:#3FB4FF;--sky2:#8ED6FF;--sky3:#D9F2FF;--cartoon:"Luckiest Guy",var(--display)}
+html{scroll-behavior:smooth}
+html,body{height:auto;min-height:100%}
+html{background:linear-gradient(180deg,#8ED6FF 0,#B4E4FF 1200px,#E4F5FF 2200px,#FBF6EC 3200px) no-repeat #FBF6EC}
+html body{background:transparent!important}
+body::after{display:none}
+.topbar{display:none!important}
+#view-pick .q{display:none}
+.sky-hero{position:relative;margin:0 calc(50% - 50vw) 8px;height:100svh;min-height:520px;overflow:hidden;display:grid;place-items:center;
+  background:radial-gradient(120% 70% at 50% 110%,rgba(255,255,255,.55),transparent 60%),linear-gradient(180deg,#2FA8FF,#5EC4FF 55%,#8ED6FF)}
+.cloud{position:absolute;width:var(--w,180px);height:calc(var(--w,180px)*.42);background:#fff;border-radius:999px;opacity:.95;
+  box-shadow:inset 0 -10px 0 rgba(160,210,245,.45);animation:drift var(--t,60s) linear infinite;animation-delay:var(--d,0s)}
+.cloud::before,.cloud::after{content:"";position:absolute;background:#fff;border-radius:50%}
+.cloud::before{width:52%;height:120%;left:14%;top:-58%}
+.cloud::after{width:38%;height:92%;right:14%;top:-38%}
+@keyframes drift{from{transform:translateX(-30vw)}to{transform:translateX(130vw)}}
+.hungry{position:relative;z-index:2;text-align:center;display:flex;flex-direction:column;align-items:center;gap:26px;padding:0 16px}
+.hungry h1{margin:0;font-family:var(--cartoon);font-weight:400;font-size:clamp(64px,19vw,150px);line-height:.95;letter-spacing:.01em;color:#fff;
+  text-shadow:0 0 2px #fff,0 0 18px rgba(255,255,255,.9),0 0 40px rgba(255,255,255,.7),0 6px 0 #BFE3FA,0 10px 0 #9BCFF2,0 18px 30px rgba(20,90,150,.35);
+  animation:puffIn 1.6s cubic-bezier(.2,.8,.2,1) both,bob 6s ease-in-out 1.6s infinite}
+.hungry h1 span{display:inline-block;animation:puffIn 1.4s cubic-bezier(.2,.8,.2,1) both}
+@keyframes puffIn{from{opacity:0;filter:blur(16px);transform:scale(.7) translateY(30px)}to{opacity:1;filter:blur(0);transform:none}}
+@keyframes bob{50%{transform:translateY(-8px)}}
+.down{border:0;background:none;color:#fff;cursor:pointer;padding:8px;animation:arrow 1.6s ease-in-out infinite;filter:drop-shadow(0 4px 6px rgba(20,90,150,.35))}
+.down svg{width:56px;height:56px;fill:none;stroke:currentColor;stroke-width:3.5;stroke-linecap:round;stroke-linejoin:round;display:block}
+.down small{display:block;font-family:var(--cartoon);font-size:18px;letter-spacing:.04em;margin-top:2px}
+@keyframes arrow{50%{transform:translateY(12px)}}
+/* Food picks become cartoon tiles */
+.foods{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:10px;width:100%}
+.food{flex-direction:column;border-radius:22px;padding:8px 6px 10px;gap:2px;font-size:13px;font-weight:800;line-height:1.15;border:3px solid #fff;
+  background:#fff;box-shadow:0 4px 0 rgba(20,90,150,.18),0 8px 18px rgba(20,90,150,.14)}
+.food img{width:64px;height:64px;object-fit:contain;transition:transform .2s}
+.food:hover img{transform:scale(1.08) rotate(-4deg)}
+.food[aria-pressed="true"]{border-color:var(--sun);background:#FFF6D6;box-shadow:0 4px 0 #E0A800,0 8px 18px rgba(224,168,0,.3)}
+.food[aria-pressed="true"] img{transform:scale(1.1)}
+.step-h{font-family:var(--cartoon);font-weight:400;font-size:22px;letter-spacing:.02em;color:#fff;text-shadow:0 3px 0 rgba(20,90,150,.35)}
+.step-h .num{font-family:var(--cartoon);font-weight:400}
+/* Wheel floats forward with foods orbiting it */
+.orbit{position:relative;width:min(400px,94vw);aspect-ratio:1;display:grid;place-items:center;margin:6px 0;
+  transform:translateY(90px) scale(.6);opacity:.2;transition:transform 1s cubic-bezier(.2,1.3,.3,1),opacity .8s}
+.orbit.in{transform:none;opacity:1}
+.orbit .go{width:min(240px,56vw)}
+.ring{position:absolute;inset:0;animation:orbit 26s linear infinite;pointer-events:none}
+.ring img{position:absolute;left:50%;top:50%;width:56px;height:56px;margin:-28px;border-radius:50%;background:#fff;object-fit:contain;padding:4px;
+  box-shadow:0 4px 0 rgba(20,90,150,.18),0 8px 14px rgba(20,90,150,.18);
+  transform:rotate(var(--r)) translateY(calc(min(400px,94vw) * -.40)) rotate(calc(-1 * var(--r)));animation:counter 26s linear infinite}
+@keyframes orbit{to{rotate:360deg}}
+@keyframes counter{to{rotate:-360deg}}
+.spinning .ring,.orbit:has(.go.spin) .ring{animation-duration:3s}
+.spinning .ring img,.orbit:has(.go.spin) .ring img{animation-duration:3s}
+/* App-style tab bar: shows once people scroll past the sky */
+#tabbar{position:fixed;left:max(10px,env(safe-area-inset-left,0px));right:max(10px,env(safe-area-inset-right,0px));bottom:calc(10px + env(safe-area-inset-bottom,0px));z-index:20;
+  max-width:520px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:6px;border-radius:24px;background:rgba(255,255,255,.92);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 10px 30px rgba(20,90,150,.25),inset 0 0 0 1.5px rgba(255,255,255,.9);
+  transform:translateY(140%);transition:transform .35s cubic-bezier(.2,1.2,.3,1)}
+#tabbar.on{transform:none}
+#tabbar button{border:0;background:none;border-radius:18px;padding:8px 2px 6px;display:flex;flex-direction:column;align-items:center;gap:2px;color:#4A6378;font:800 12px var(--body);cursor:pointer}
+#tabbar svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+#tabbar button[aria-current="page"]{background:#E1F0FD;color:#0E2A45}
+body.has-tabbar .fb-foot{padding-bottom:110px}
+@media (prefers-reduced-motion:reduce){.cloud,.hungry h1,.down,.ring,.ring img{animation:none}.orbit{transform:none;opacity:1}}
 </style>
 
 <main class="wrap">
@@ -377,6 +440,12 @@ nav.tabs .acct-who b{display:inline-block;margin-left:6px;background:var(--sun);
 
   <!-- Takeout -->
   <section class="view" id="view-pick" aria-label="Takeout">
+    <div class="sky-hero" id="skyHero"><i class="cloud" style="--w:220px;top:8%;--t:70s;--d:-10s"></i><i class="cloud" style="--w:150px;top:22%;--t:55s;--d:-40s"></i><i class="cloud" style="--w:260px;top:62%;--t:90s;--d:-5s"></i><i class="cloud" style="--w:120px;top:78%;--t:50s;--d:-30s"></i><i class="cloud" style="--w:190px;top:40%;--t:80s;--d:-60s"></i><i class="cloud" style="--w:140px;top:88%;--t:65s;--d:-20s"></i>
+      <div class="hungry">
+        <h1><span>You</span> <span style="animation-delay:.35s">hungry?</span></h1>
+        <button class="down" type="button" id="downBtn" aria-label="Scroll down to pick your food"><svg viewBox="0 0 24 24"><path d="M5 9l7 7 7-7"/></svg><small>Swipe down</small></button>
+      </div>
+    </div>
     <div class="hero">
       <p class="q">What's for <mark id="dinner" role="button" tabindex="0" aria-label="Dinner: jump to the spin wheel">dinner</mark>?</p>
       <div class="step">
@@ -397,7 +466,7 @@ nav.tabs .acct-who b{display:inline-block;margin-left:6px;background:var(--sun);
       </div>
       <p class="step-h"><span class="num n3">3</span>Press the big button!</p>
       <datalist id="cuisineNames"></datalist><datalist id="whereNames"></datalist>
-      <button class="go" id="go" type="button"><span><em class="go-l" id="goLabel">Spin!</em><small id="goSub">Pick for me</small></span></button>
+      <div class="orbit" id="orbit"><div class="ring" aria-hidden="true"><img src="https://d8j0ntlcm91z4.cloudfront.net/user_398AttuHCY7yVwdphiVaKA24oUw/hf_20261102_205042_e68ac747-da0d-44ae-b9a2-248d9e4f9fc4.png" alt="" style="--r:0deg"><img src="https://d8j0ntlcm91z4.cloudfront.net/user_398AttuHCY7yVwdphiVaKA24oUw/hf_20261102_205040_8b99021f-ae91-41b1-b18a-64e9ccbe5c41.png" alt="" style="--r:45deg"><img src="https://d8j0ntlcm91z4.cloudfront.net/user_398AttuHCY7yVwdphiVaKA24oUw/hf_20261102_205039_1371654a-32f7-4403-aae8-3e7028d57577.png" alt="" style="--r:90deg"><img src="https://d8j0ntlcm91z4.cloudfront.net/user_398AttuHCY7yVwdphiVaKA24oUw/hf_20261102_205832_49773cd6-8255-4f5a-a00c-2f5ef695122c.png" alt="" style="--r:135deg"><img src="https://d8j0ntlcm91z4.cloudfront.net/user_398AttuHCY7yVwdphiVaKA24oUw/hf_20261102_205833_773e715f-0fc2-4008-98d6-3813f4fa305b.png" alt="" style="--r:180deg"><img src="https://d8j0ntlcm91z4.cloudfront.net/user_398AttuHCY7yVwdphiVaKA24oUw/hf_20261102_205840_49103836-9e8f-4311-bd94-314251e5d6f8.png" alt="" style="--r:225deg"><img src="https://d8j0ntlcm91z4.cloudfront.net/user_398AttuHCY7yVwdphiVaKA24oUw/hf_20261102_205848_cf3a46c8-34a0-4be7-86dd-dcb2e4b04142.png" alt="" style="--r:270deg"><img src="https://d8j0ntlcm91z4.cloudfront.net/user_398AttuHCY7yVwdphiVaKA24oUw/hf_20261102_205832_693c8d8c-ae53-4091-93f0-d3afd66d0bb8.png" alt="" style="--r:315deg"></div><button class="go" id="go" type="button"><span><em class="go-l" id="goLabel">Spin!</em><small id="goSub">Pick for me</small></span></button></div>
       <div class="ticket" id="ticket" aria-live="polite"></div>
     </div>
     <canvas id="confetti" aria-hidden="true"></canvas>
@@ -743,9 +812,10 @@ const FOODS = [
   ["Thai","thai","🍜"], ["Indian","indian nepalese","🍛"], ["BBQ","barbecue bbq rotisserie","🍗"], ["Subs & sandwiches","sandwich sub deli banh","🥪"]
 ];
 // Food chips are multi-select: S.foods holds the chosen chips' search words; "Any food" clears them
+const FOOD_IMG = {"Any food": "https://d8j0ntlcm91z4.cloudfront.net/user_398AttuHCY7yVwdphiVaKA24oUw/hf_20261102_205854_a39cbfbc-6504-4e46-a86f-9ee83c4699e2.png", "Pizza": "https://d8j0ntlcm91z4.cloudfront.net/user_398AttuHCY7yVwdphiVaKA24oUw/hf_20261102_205042_e68ac747-da0d-44ae-b9a2-248d9e4f9fc4.png", "Burgers": "https://d8j0ntlcm91z4.cloudfront.net/user_398AttuHCY7yVwdphiVaKA24oUw/hf_20261102_205040_8b99021f-ae91-41b1-b18a-64e9ccbe5c41.png", "Shawarma": "https://d8j0ntlcm91z4.cloudfront.net/user_398AttuHCY7yVwdphiVaKA24oUw/hf_20261102_205832_693c8d8c-ae53-4091-93f0-d3afd66d0bb8.png", "Sushi": "https://d8j0ntlcm91z4.cloudfront.net/user_398AttuHCY7yVwdphiVaKA24oUw/hf_20261102_205039_1371654a-32f7-4403-aae8-3e7028d57577.png", "Mexican": "https://d8j0ntlcm91z4.cloudfront.net/user_398AttuHCY7yVwdphiVaKA24oUw/hf_20261102_205832_49773cd6-8255-4f5a-a00c-2f5ef695122c.png", "Chinese": "https://d8j0ntlcm91z4.cloudfront.net/user_398AttuHCY7yVwdphiVaKA24oUw/hf_20261102_205833_773e715f-0fc2-4008-98d6-3813f4fa305b.png", "Italian": "https://d8j0ntlcm91z4.cloudfront.net/user_398AttuHCY7yVwdphiVaKA24oUw/hf_20261102_205840_50e115ca-5efc-4051-9d02-bfac803016c1.png", "Fish & chips": "https://d8j0ntlcm91z4.cloudfront.net/user_398AttuHCY7yVwdphiVaKA24oUw/hf_20261102_205840_86a0c26c-70bf-4219-aa44-f9f1db56224d.png", "Breakfast": "https://d8j0ntlcm91z4.cloudfront.net/user_398AttuHCY7yVwdphiVaKA24oUw/hf_20261102_205840_49103836-9e8f-4311-bd94-314251e5d6f8.png", "Thai": "https://d8j0ntlcm91z4.cloudfront.net/user_398AttuHCY7yVwdphiVaKA24oUw/hf_20261102_205848_e00a55d0-c3d7-4681-bbfb-8bf3b3970d47.png", "Indian": "https://d8j0ntlcm91z4.cloudfront.net/user_398AttuHCY7yVwdphiVaKA24oUw/hf_20261102_205847_fba2fe4c-5371-4188-aa9d-bc1207e52a58.png", "BBQ": "https://d8j0ntlcm91z4.cloudfront.net/user_398AttuHCY7yVwdphiVaKA24oUw/hf_20261102_205848_cf3a46c8-34a0-4be7-86dd-dcb2e4b04142.png", "Subs & sandwiches": "https://d8j0ntlcm91z4.cloudfront.net/user_398AttuHCY7yVwdphiVaKA24oUw/hf_20261102_205854_c6b11065-0954-4f71-80cd-34a80075dcc3.png"};
 function renderFoods(){
   const none = !S.foods.length && !S.craving.trim();
-  $("#foods").innerHTML = FOODS.map(([label, q, icon]) => `<button type="button" class="food" data-food="${esc(q)}" aria-pressed="${q ? S.foods.includes(q) : none}"><span aria-hidden="true">${icon}</span>${esc(label)}</button>`).join("");
+  $("#foods").innerHTML = FOODS.map(([label, q, icon]) => `<button type="button" class="food" data-food="${esc(q)}" aria-pressed="${q ? S.foods.includes(q) : none}">${FOOD_IMG[label] ? `<img src="${FOOD_IMG[label]}" alt="" loading="lazy">` : `<span aria-hidden="true">${icon}</span>`}${esc(label)}</button>`).join("");
 }
 // Every chosen food group (chips + typed food), as [label, search words]
 function foodGroups(){
@@ -902,7 +972,7 @@ function spin(){
 function showTicket(){
   const t = $("#ticket"); if (!t || !t.offsetHeight) return;
   const r = t.getBoundingClientRect(), head = ($(".topbar") || $("header"))?.offsetHeight || 64;
-  const y = r.height + head + 24 > innerHeight ? scrollY + r.top - head - 8 : scrollY + r.bottom - innerHeight + 16;
+  const y = r.height + head + 24 > innerHeight ? scrollY + r.top - head - 8 : scrollY + r.bottom - innerHeight + (document.body.classList.contains("has-tabbar") ? 104 : 16);
   if (Math.abs(y - scrollY) > 4) window.scrollTo({top: Math.max(0, y), behavior: calm() ? "auto" : "smooth"});
 }
 function confetti(){
@@ -1265,5 +1335,40 @@ SPINS.owner = prefs.get("owner") === "1"; render();
 </script>
 <script src="/account.js" defer></script>
 <script defer src="/_vercel/insights/script.js"></script>
+
+<nav id="tabbar" aria-label="Sections">
+  <button type="button" data-tab="pick"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7"/><path d="M6 9.5V20h12V9.5"/><path d="M10 20v-5h4v5"/></svg>Home</button>
+  <button type="button" data-tab="lists"><svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/></svg>My lists</button>
+  <button type="button" data-tab="explore"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></svg>Explore</button>
+  <button type="button" data-tab="profile"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>Profile</button>
+</nav>
+<script>
+(() => {
+  const $ = s => document.querySelector(s), bar = $("#tabbar"), T = window.__TR;
+  // Tab bar only appears after scrolling past the sky (always on the other pages)
+  let pastSky = false;
+  const paint = () => {
+    const view = T ? T.S.view : "pick";
+    const on = view !== "pick" || pastSky;
+    bar.classList.toggle("on", on); document.body.classList.toggle("has-tabbar", on);
+    bar.querySelectorAll("[data-tab]").forEach(b => b.dataset.tab === view ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current"));
+  };
+  new IntersectionObserver(([e]) => { pastSky = !e.isIntersecting; paint(); }, {threshold: 0.15}).observe($("#skyHero"));
+  // The wheel floats forward when it scrolls into view
+  new IntersectionObserver(([e]) => { if (e.isIntersecting) $("#orbit").classList.add("in"); }, {threshold: 0.25}).observe($("#orbit"));
+  $("#downBtn").addEventListener("click", () => document.querySelector("#view-pick .step").scrollIntoView({behavior: "smooth", block: "start"}));
+  bar.addEventListener("click", e => {
+    const b = e.target.closest("[data-tab]"); if (!b) return;
+    const t = b.dataset.tab;
+    if (t === "profile"){ location.href = "/profile"; return; }
+    const link = document.querySelector(`nav.tabs a[data-view="${t}"]`);
+    if (link) link.click();
+    if (t === "pick") setTimeout(() => $("#orbit").scrollIntoView({behavior: "smooth", block: "center"}), 60);
+    setTimeout(paint, 80);
+  });
+  addEventListener("hashchange", paint); document.addEventListener("click", () => setTimeout(paint, 50));
+  paint();
+})();
+</script>
 </body>
 </html>
