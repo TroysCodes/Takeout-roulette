@@ -817,7 +817,8 @@ function byFood(all){
 }
 function candidatesAll(){
   if (!S.places.length) return poolItems().map(i => ({key: i.id, name: i.name, address: i.address, place: i.place, list: i.list, itemId: i.id}));
-  const tried = new Set(S.items.filter(i => i.list === "tried" && i.placeId).map(i => i.placeId));
+  // Places someone has confirmed (Places I've been) or marked "Tried, not for me" never come up again
+  const tried = new Set(S.items.filter(i => (i.list === "tried" || i.list === "been") && i.placeId).map(i => i.placeId));
   const out = new Map();
   const put = (pl, list, itemId, via) => { if (!tried.has(pl.id) && !out.has(pl.id)) out.set(pl.id, {key: pl.id, name: pl.name, address: pl.address, placeId: pl.id, list, itemId, via}); };
   if (S.pool === "all"){
@@ -1079,7 +1080,7 @@ function render(){
         })() : ""
       }</div>${p.confirmed ? (() => { const L = calLinks(p, p.time); return `<div class="locked" role="status">
         <p class="lk-h">🎉 You're going to ${esc(p.name)}!</p>
-        <p class="lk-s">Saved to <b>Places I've been</b>. Pick a time and add it to your calendar so you get a reminder with the address.</p>
+        <p class="lk-s">Saved to <b>Places I&rsquo;ve been</b> in My lists, and it won&rsquo;t come up in your spins again. Pick a time and add it to your calendar so you get a reminder with the address.</p>
         <label class="lk-t">Time <input type="time" id="lkTime" value="${esc(p.time)}"></label>
         <div class="lk-where"><span>📍 ${esc(p.address || p.place || p.name)}</span>${truckUrl(placeOf(p)) ? `<a href="${esc(truckUrl(placeOf(p)))}" target="_blank" rel="noopener">Where's the truck today? ↗</a>` : `<a href="${esc(mapsUrl(p))}" target="_blank" rel="noopener">Open in Maps ↗</a>`}</div>
         <div class="lk-cal"><a class="btn go-green" id="calG" href="${esc(L.g)}" target="_blank" rel="noopener">📅 Add to Google Calendar</a><a class="btn" id="calO" href="${esc(L.o)}" target="_blank" rel="noopener">Outlook calendar</a></div>
