@@ -889,11 +889,17 @@ function spin(){
   const t = $("#ticket");
   t.classList.add("rolling");
   t.innerHTML = `<div class="meta"><span>ORDER #${String(S.order + 1).padStart(3,"0")}</span><span>Picking…</span></div><span class="tag tried">Spinning…</span><p class="dish" id="roll"></p>`;
-  let n = 0, delay = 55;
+  let n = 0, delay = 55, done = false;
+  const finish = () => { if (done) return; done = true; clearTimeout(guard); $("#ticket").classList.remove("rolling"); land(); };
+  // Safety net: whatever happens, the spin always lands within a few seconds
+  const guard = setTimeout(finish, 6000);
   const tick = () => {
-    $("#roll").textContent = pool[Math.floor(Math.random() * pool.length)].name;
-    n++; delay *= 1.12;
-    if (n < 16) setTimeout(tick, delay); else { t.classList.remove("rolling"); land(); }
+    if (done) return;
+    try {
+      const r = $("#roll"); if (r) r.textContent = pool[Math.floor(Math.random() * pool.length)].name;
+      n++; delay *= 1.12;
+      if (n < 16) setTimeout(tick, delay); else finish();
+    } catch (e) { finish(); }
   };
   tick();
   t.scrollIntoView({block: "nearest", behavior: "smooth"});
@@ -1062,7 +1068,9 @@ function render(){
   $("#go").setAttribute("aria-label", again ? `Spin again: ${SPINS.owner ? "unlimited spins" : `${left} left today`}` : pool.length ? `Spin: pick from ${pool.length} ${what}` : "Spin");
 
   const t = $("#ticket");
-  if (S.pick){
+  // While the wheel is shuffling, leave the ticket alone (a re-render mid-spin used to wipe it and freeze the spin)
+  if (spinning){
+  } else if (S.pick){
     const p = S.pick, at = p.at instanceof Date ? p.at : new Date(p.at);
     const live = p.itemId && S.items.find(i => i.id === p.itemId);
     const isTry = p.list === "try";
