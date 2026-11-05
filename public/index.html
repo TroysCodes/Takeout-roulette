@@ -1067,7 +1067,7 @@ function render(){
   $("#craveClear").hidden = !$("#crave").value;
   $("#whereClear").hidden = !$("#where").value;
   if (S.where.trim()){ const n = pool.length; $("#whereN").hidden = false; const c = whereCenter(S.where); $("#whereN").textContent = !c.ll ? `Can't find "${S.where.trim()}" yet. Try a town, neighbourhood, street or postal code.` : `${n} ${n === 1 ? "spot" : "spots"} within ${RADIUS_KM} km of ${c.name}`; } else $("#whereN").hidden = true;
-  const wl = [...new Set([...S.places.map(areaOf), ...Object.keys(PLACES_LL)])].sort().map(a => `<option value="${esc(a)}"></option>`).join("");
+  const wl = whereNames().map(a => `<option value="${esc(a)}"></option>`).join("");
   if ($("#whereNames").innerHTML !== wl) $("#whereNames").innerHTML = wl;
   renderFoods();
   const cz = [...new Set(S.places.map(p => p.cuisine))].sort().map(c => `<option value="${esc(c)}"></option>`).join("");
@@ -1199,7 +1199,9 @@ $("#crave").addEventListener("keydown", e => { if (e.key === "Enter"){ e.prevent
 $("#craveClear").addEventListener("click", () => { S.craving = ""; $("#crave").value = ""; render(); });
 /* Location suggestions: towns, neighbourhoods and areas we know, best matches first */
 let sugAt = -1;
-function whereNames(){ return [...new Set([...S.places.map(areaOf), ...Object.keys(PLACES_LL)])].sort((a, b) => a.localeCompare(b)); }
+// Suggestions stay inside the City of Hamilton (Burlington and Caledonia are neighbours, not part of it)
+const NOT_HAMILTON = new Set(["Burlington", "Caledonia"]);
+function whereNames(){ return [...new Set([...S.places.map(areaOf), ...Object.keys(PLACES_LL)])].filter(n => !NOT_HAMILTON.has(n)).sort((a, b) => a.localeCompare(b)); }
 function showSug(){
   const ul = $("#whereSug"), inp = $("#where"), q = norm(inp.value.trim());
   if (document.activeElement !== inp){ ul.hidden = true; inp.setAttribute("aria-expanded", "false"); return; }
