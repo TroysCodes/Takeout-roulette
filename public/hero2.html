@@ -4,21 +4,22 @@
 <meta charset="utf-8">
 <meta name="robots" content="noindex">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#FBF6EC">
+<meta name="theme-color" content="#F4F5EC">
 <meta name="color-scheme" content="light only">
-<title>Takeout Roulette</title>
+<title>EatFry</title>
 <meta name="description" content="Can't decide what to eat? Tap the button for a local Hamilton takeout spot.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🥡</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gabarito:wght@600;700;800;900&family=Figtree:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap">
 <style>
-/* Layout: phone app, four views (Spin, My lists, Explore, Map) above a floating pill tab bar. Spin is the hero: a 1-2-3 around one roulette-wheel button. Max 560px wide.
+/* EatFry palette: deep basil green (#17794D) on warm cream. Our own green, darker than delivery-app greens.
+   Layout: phone app, four views (Spin, My lists, Explore, Map) above a floating pill tab bar. Spin is the hero: a 1-2-3 around one roulette-wheel button. Max 560px wide.
    Look: cream ground, bright sky blue as the main colour, paler blues for the second layer, sun / coral / mint as playful pops (they make up the wheel). */
 :root{
-  --bg:#FBF6EC; --bg-top:#FFFDF8; --surface:#FFFFFF; --sunk:#EAF4FD; --line:#EEE6D8;
-  --fg:#16293B; --muted:#65707D;
-  --chili:#4FA8F0; --chili-hi:#BDE2FF; --chili-ink:#0E2A45; --chili-soft:#E1F0FD;
-  --herb:#0F8C74; --herb-soft:#DCF4EC;
+  --bg:#F4F5EC; --bg-top:#FBFCF6; --surface:#FFFFFF; --sunk:#E5F0E8; --line:#E3E6D8;
+  --fg:#12261B; --muted:#5E6B63;
+  --chili:#17794D; --chili-hi:#B6E3C8; --chili-ink:#0A3320; --chili-soft:#DDF1E4;
+  --herb:#0F6B44; --herb-soft:#DCF0E3;
   --sun:#FFC83D; --sun-soft:#FFF2CC; --sun-ink:#7A5600;
   --coral:#FF7A5C; --coral-soft:#FFE7E0; --coral-ink:#B83E22;
   --slate:#5D6B7A; --slate-soft:#EEF1F4;
@@ -364,11 +365,29 @@ nav.tabs button.acct-item:hover,nav.tabs a.acct-item:hover{background:var(--sunk
 nav.tabs .acct-who{border-top:1px solid var(--line);border-radius:0;margin-top:4px;padding-top:14px;color:var(--muted);font-size:13px;font-weight:600;overflow-wrap:anywhere}
 nav.tabs .acct-who b{display:inline-block;margin-left:6px;background:var(--sun);color:#16293B;border-radius:999px;padding:1px 8px;font-size:11px}
 #menu > button#acctIn{border-top:1px solid var(--line);border-radius:0 0 12px 12px;margin-top:4px;padding-top:14px}
+
+/* EatFry: brand word, 7th-meal pitch, stamp card and QR */
+.brand .bn{font-weight:900;letter-spacing:-.02em}
+.free7{margin:-4px auto 6px;max-width:360px;font-size:14.5px;line-height:1.45;color:var(--chili-ink);background:var(--chili-soft);border:1.5px solid var(--chili-hi);border-radius:18px;padding:10px 14px;text-align:center}
+.free7 b{color:var(--chili)}
+.stamps{margin:12px 0 4px;padding:12px 14px;border-radius:16px;background:var(--chili-soft);color:var(--chili-ink)}
+.stamps p{margin:0 0 8px;font-size:14px;font-weight:600}
+.stamps .dots{display:flex;gap:6px;flex-wrap:wrap}
+.stamps .dots i{width:30px;height:30px;border-radius:50%;border:2px dashed var(--chili);display:grid;place-items:center;font-style:normal;font-size:13px;font-weight:800;color:var(--chili)}
+.stamps .dots i.on{background:var(--chili);border-style:solid;color:#fff}
+.stamps .dots i.gift{border-color:var(--sun-ink);color:var(--sun-ink);background:var(--sun-soft)}
+.stamps .btn{margin-top:10px}
+.qr-d{border:0;border-radius:24px;padding:22px;max-width:340px;width:calc(100% - 32px);text-align:center;background:var(--surface);color:var(--fg);box-shadow:var(--shadow)}
+.qr-d::backdrop{background:rgba(10,30,20,.45)}
+.qr-d h2{font-family:var(--display);margin:0 0 4px;font-size:22px}
+.qr-d #qrBox{display:grid;place-items:center;margin:14px auto;padding:12px;background:#fff;border-radius:16px;width:max-content}
+.qr-d small{display:block;color:var(--muted);font-size:12.5px;line-height:1.4}
+.ib.qr{color:var(--chili);border-color:var(--chili-hi)}
 </style>
 
 <main class="wrap">
   <header class="topbar">
-    <a class="brand" href="#pick" id="home" aria-label="Takeout Roulette, home"><i class="mark" aria-hidden="true"></i>Takeout <span>Roulette</span></a>
+    <a class="brand" href="#pick" id="home" aria-label="EatFry, home"><i class="mark" aria-hidden="true"></i><b class="bn">Eat<span>Fry</span></b></a>
     <div class="status" id="status" hidden>Saved on this device</div>
     <button class="go-spin" id="goSpin" type="button" hidden>🎡 Spin</button>
     <div class="menu-wrap">
@@ -383,9 +402,10 @@ nav.tabs .acct-who b{display:inline-block;margin-left:6px;background:var(--sun);
   </header>
 
   <!-- Takeout -->
-  <section class="view" id="view-pick" aria-label="Takeout">
+  <section class="view" id="view-pick" aria-label="Spin">
     <div class="hero">
       <p class="q">What's for <mark id="dinner" role="button" tabindex="0" aria-label="Dinner: jump to the spin wheel">dinner</mark>?</p>
+      <p class="free7"><b>7th meal on us.</b> Visit the same spot 7 times through EatFry, show your QR code each time, and your 7th meal is paid for.</p>
       <div class="step">
         <p class="step-h"><span class="num n1">1</span>Pick a food</p>
         <div class="foods" id="foods" role="group" aria-label="Food"></div>
@@ -435,7 +455,7 @@ nav.tabs .acct-who b{display:inline-block;margin-left:6px;background:var(--sun);
 
     <div class="list">
       <div class="list-head"><h3>Tried, not for me</h3><span class="count" id="count-tried"></span></div>
-      <p class="hint">Kept here so you remember. Takeout never picks these.</p>
+      <p class="hint">Kept here so you remember. EatFry never picks these.</p>
       <ul class="items" id="items-tried"></ul>
       <p class="empty-note" id="empty-tried">Nothing here yet.</p>
     </div>
@@ -452,7 +472,7 @@ nav.tabs .acct-who b{display:inline-block;margin-left:6px;background:var(--sun);
   <!-- Explore -->
   <section class="view" id="view-explore" aria-label="Explore Hamilton" hidden>
     <h2>Explore Hamilton</h2>
-    <p class="lede">Local, independent restaurants and takeout spots across Hamilton, Dundas, Ancaster, Stoney Creek, Waterdown and Binbrook. No big chains. Add any of them to your lists and Takeout can pick them.</p>
+    <p class="lede">Local, independent restaurants and takeout spots across Hamilton, Dundas, Ancaster, Stoney Creek, Waterdown and Binbrook. No big chains. Add any of them to your lists and EatFry can pick them.</p>
     <div class="been-box">
       <p class="been-sum" id="beenSum"></p>
       <div class="been-bar" aria-hidden="true"><span id="beenBar"></span></div>
@@ -519,6 +539,15 @@ nav.tabs .acct-who b{display:inline-block;margin-left:6px;background:var(--sun);
 <datalist id="placeNames"></datalist>
 
 
+<dialog class="qr-d" id="qrDlg" aria-labelledby="qrH">
+  <h2 id="qrH">Show this at the counter</h2>
+  <p id="qrPlace" style="margin:0;font-weight:700"></p>
+  <div id="qrBox" aria-label="Your EatFry QR code"></div>
+  <p id="qrCount" style="margin:0 0 6px;font-weight:600"></p>
+  <small>Preview: restaurants can't scan EatFry codes yet. Once your favourite spots join, each scan adds a stamp, and stamp 7 is a free meal.</small>
+  <button class="btn dark" type="button" id="qrClose" style="margin-top:14px">Done</button>
+</dialog>
+<script src="/qrcode.js"></script><!-- qrcode-generator 1.4.4, MIT, Kazuhiko Arase -->
 <script>
 (() => {
 const $ = s => document.querySelector(s);
@@ -599,7 +628,7 @@ function calLinks(p, t){
   if (where) lines.push(`Address: ${where}`);
   if (pl) lines.push(`${pl.rating == null ? "New spot" : "★ " + pl.rating.toFixed(1) + " on Google"} · ${"$".repeat(pl.price)} · ${pl.cuisine}`);
   if (truckUrl(pl)) lines.push(`Food truck, check today's spot: ${truckUrl(pl)}`);
-  lines.push(`Map: ${mapsUrl(p)}`, "", "Picked with Takeout Roulette");
+  lines.push(`Map: ${mapsUrl(p)}`, "", "Picked with EatFry");
   const body = lines.join("\n");
   let tz = ""; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch {}
   const g = "https://calendar.google.com/calendar/render?" + new URLSearchParams({action:"TEMPLATE", text:title, dates:`${stamp(start)}/${stamp(end)}`, details:body, location:where, ...(tz ? {ctz:tz} : {})});
@@ -641,12 +670,30 @@ function confirmPick(){
   setTimeout(() => $(".locked")?.scrollIntoView({behavior: calm() ? "auto" : "smooth", block: "center"}), 60);
   toast(`Saved to Places I've been`, () => { S.pick = S.pick && S.pick.confirmed === it.id ? {...S.pick, confirmed: null} : S.pick; remove(it.id); });
 }
+/* ---------- EatFry 7th-meal stamps (preview: counts your confirmed visits; restaurants can't scan yet) ---------- */
+const visitsAt = pid => Math.min(7, S.items.filter(i => i.list === "been" && i.placeId === pid).length);
+function stampCard(pid, name){
+  const n = visitsAt(pid), left = 7 - n;
+  const dots = Array.from({length: 7}, (_, k) => k === 6 ? `<i class="${n >= 7 ? "on" : "gift"}" aria-hidden="true">🎁</i>` : `<i class="${k < n ? "on" : ""}" aria-hidden="true">${k < n ? "✓" : k + 1}</i>`).join("");
+  return `<div class="stamps" role="group" aria-label="${n} of 7 visits to ${esc(name)}"><p>${n >= 7 ? "🎉 Your next meal here is on us!" : `Visit ${n} of 7 · ${left} more and meal 7 is on us`}</p><div class="dots">${dots}</div><button class="btn dark" type="button" data-qr="${esc(pid)}" data-qrname="${esc(name)}">▦ Show my QR code</button></div>`;
+}
+function showQR(pid, name){
+  const who = (typeof REV !== "undefined" && REV.anon) || "guest";
+  const box = $("#qrBox"); box.innerHTML = "";
+  const code = `EATFRY:${who}:${pid}:${visitsAt(pid)}`;
+  if (window.qrcode){ const q = qrcode(0, "M"); q.addData(code); q.make(); box.innerHTML = q.createSvgTag({cellSize: 6, margin: 0}).replace(/fill="black"/g, 'fill="#0A3320"'); }
+  else box.textContent = code;
+  $("#qrPlace").textContent = name; $("#qrCount").textContent = `Visit ${visitsAt(pid)} of 7`;
+  const d = $("#qrDlg"); d.showModal ? d.showModal() : d.setAttribute("open", "");
+}
+document.addEventListener("click", e => { const b = e.target.closest("[data-qr]"); if (b){ e.preventDefault(); showQR(b.dataset.qr, b.dataset.qrname); } });
+$("#qrClose").addEventListener("click", () => { const d = $("#qrDlg"); d.close ? d.close() : d.removeAttribute("open"); });
 function beenRow(i){
   const d = new Date(i.visitedAt || i.addedAt), when = isNaN(d) ? "" : d.toLocaleDateString(undefined, {weekday:"short", month:"short", day:"numeric"});
   const rate = `<div class="acts-row rate" role="group" aria-label="How was ${esc(i.name)}?"><span class="rate-q">${i.verdict ? "Your rating:" : "How was it?"}</span>${RATES.map(([v, label]) =>
     `<button class="ib${i.verdict === v ? " on" : ""}" type="button" data-rate="${i.id}|${v}" aria-pressed="${i.verdict === v}">${label}</button>`).join("")}</div>`;
   const cmt = i.verdict ? cmtBox(i.id, i.comment, i.name, i.placeId ? `${i.comment ? "Shared" : "Your rating is shared"} with everyone, without your name.` : "") : "";
-  return `<li data-name="${esc(i.name)}" data-id="${i.id}"><div class="bg" aria-hidden="true">Delete</div><div class="fg"><span class="nm"><b>${esc(i.name)}</b><small>${esc(when)}${i.address ? " · " + esc(i.address) : ""}</small></span>${rate}${cmt}</div></li>`;
+  return `<li data-name="${esc(i.name)}" data-id="${i.id}"><div class="bg" aria-hidden="true">Delete</div><div class="fg"><span class="nm"><b>${esc(i.name)}</b><small>${esc(when)}${i.address ? " · " + esc(i.address) : ""}</small></span>${i.placeId ? `<div class="acts-row"><button class="ib qr" type="button" data-qr="${esc(i.placeId)}" data-qrname="${esc(i.name)}">▦ Show my QR · ${visitsAt(i.placeId)}/7</button></div>` : ""}${rate}${cmt}</div></li>`;
 }
 // Comment box: type + Post (or Enter); once posted it shows as text with Edit / Remove
 function cmtBox(id, comment, name, note){
@@ -696,10 +743,10 @@ function setReviews(rows){
 }
 function crowd(pid, max, always){
   const s = S.reviews && S.reviews.get(pid);
-  if (!s) return always ? `<div class="crowd"><b>Takeout Roulette diners</b> <small>No ratings yet. Been here? Be the first.</small></div>` : "";
+  if (!s) return always ? `<div class="crowd"><b>EatFry diners</b> <small>No ratings yet. Been here? Be the first.</small></div>` : "";
   const parts = [["loved","😍"],["ok","🙂"],["nope","👎"]].filter(([k]) => s[k]).map(([k, e]) => `${e} ${s[k]}`).join(" · ");
   const quotes = s.comments.slice(0, max).map(c => `<q>${esc(c.c)}</q>`).join("");
-  return `<div class="crowd"><b>Takeout Roulette diners</b> <span>${parts}</span> <small>(${s.n} rating${s.n === 1 ? "" : "s"})</small>${quotes}</div>`;
+  return `<div class="crowd"><b>EatFry diners</b> <span>${parts}</span> <small>(${s.n} rating${s.n === 1 ? "" : "s"})</small>${quotes}</div>`;
 }
 // Owner-only reviews & stats, separate from the email sign-ups
 function renderReviewAdmin(){
@@ -743,7 +790,7 @@ function matchPlaces(food){
   const words = food.split(/[^A-Za-z]+/).filter(w => w.length > 2).map(stem);
   return S.places.filter(p => { const hay = (p.name + " " + p.cuisine).toLowerCase(); return words.some(w => hay.includes(w)); });
 }
-// Everything Takeout can land on: always a restaurant when the Hamilton list is loaded
+// Everything EatFry can land on: always a restaurant when the Hamilton list is loaded
 const FOODS = [
   ["Any food","", "✨"], ["Pizza","pizza","🍕"], ["Burgers","burger","🍔"], ["Shawarma","shawarma middle eastern lebanese syrian","🥙"],
   ["Sushi","sushi japanese","🍣"], ["Mexican","mexican taco burrito tex","🌮"], ["Chinese","chinese szechuan","🥡"],
@@ -1095,7 +1142,7 @@ function render(){
             : `<button class="btn" type="button" data-addlist="1">+ Add to list</button>`;
         })() : ""
       }</div>${p.confirmed ? (() => { const L = calLinks(p, p.time); return `<div class="locked" role="status">
-        <p class="lk-h">🎉 You're going to ${esc(p.name)}!</p>
+        <p class="lk-h">🎉 You're going to ${esc(p.name)}!</p>${p.placeId ? stampCard(p.placeId, p.name) : ""}
         <p class="lk-s">Saved to <b>Places I&rsquo;ve been</b> in My lists, and it won&rsquo;t come up in your spins again. Pick a time and add it to your calendar so you get a reminder with the address.</p>
         <label class="lk-t">Time <input type="time" id="lkTime" value="${esc(p.time)}"></label>
         <div class="lk-where"><span>📍 ${esc(p.address || p.place || p.name)}</span>${truckUrl(placeOf(p)) ? `<a href="${esc(truckUrl(placeOf(p)))}" target="_blank" rel="noopener">Where's the truck today? ↗</a>` : `<a href="${esc(mapsUrl(p))}" target="_blank" rel="noopener">Open in Maps ↗</a>`}</div>
