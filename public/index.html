@@ -101,6 +101,12 @@ h3{font-family:var(--display);font-weight:700;font-size:20px;margin:0}
 .where .pin{background:none;box-shadow:none;padding:0;width:auto;height:auto;border-radius:0;z-index:1;position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:16px;pointer-events:none}
 .crave.where input{padding-left:44px}
 .where-n{font-size:12.5px;color:var(--muted);text-align:center}
+/* Our own suggestion list under the location box (phones mostly ignore <datalist>) */
+.sug{position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:20;margin:0;padding:6px;list-style:none;background:var(--surface);border-radius:18px;box-shadow:var(--shadow, 0 8px 24px rgba(0,0,0,.14));max-height:260px;overflow-y:auto}
+#where::-webkit-search-cancel-button{-webkit-appearance:none;display:none}
+.sug li{padding:11px 14px;border-radius:12px;font-size:15px;cursor:pointer;color:var(--fg)}
+.sug li b{font-weight:800}
+.sug li[aria-selected="true"],.sug li:hover{background:var(--chili-soft)}
 .crave .clear{position:absolute;right:7px;top:50%;transform:translateY(-50%);border:0;background:var(--sunk);color:var(--muted);border-radius:50%;width:32px;height:32px;font-size:17px;line-height:1}
 
 /* The roulette-wheel button: sun/coral/mint/sky segments turn around a sky-blue centre */
@@ -390,8 +396,9 @@ nav.tabs .acct-who b{display:inline-block;margin-left:6px;background:var(--sun);
       <div class="step">
         <p class="step-h"><span class="num n2">2</span>Pick from where?</p>
         <div class="crave where">
-          <div class="box"><span class="pin" aria-hidden="true">📍</span><input id="where" type="search" list="whereNames" placeholder="Anywhere, or type an area or street" autocomplete="off" enterkeyhint="go" aria-label="Type a location, like Dundas or Locke St">
-          <button class="clear" type="button" id="whereClear" aria-label="Clear location" hidden>×</button></div>
+          <div class="box"><span class="pin" aria-hidden="true">📍</span><input id="where" type="search" placeholder="Anywhere, or type an area or street" autocomplete="off" enterkeyhint="go" aria-label="Type a location, like Dundas or Locke St" role="combobox" aria-autocomplete="list" aria-controls="whereSug" aria-expanded="false">
+          <button class="clear" type="button" id="whereClear" aria-label="Clear location" hidden>×</button>
+          <ul class="sug" id="whereSug" role="listbox" aria-label="Location suggestions" hidden></ul></div>
           <small class="where-n" id="whereN" hidden></small>
         </div>
       </div>
@@ -1190,9 +1197,50 @@ $("#foods").addEventListener("click", e => {
 });
 $("#crave").addEventListener("keydown", e => { if (e.key === "Enter"){ e.preventDefault(); e.target.blur(); spin(); } });
 $("#craveClear").addEventListener("click", () => { S.craving = ""; $("#crave").value = ""; render(); });
-$("#where").addEventListener("input", e => { S.where = e.target.value; prefs.set("where", S.where); render(); });
-$("#where").addEventListener("keydown", e => { if (e.key === "Enter"){ e.preventDefault(); e.target.blur(); spin(); } });
-$("#whereClear").addEventListener("click", () => { S.where = ""; $("#where").value = ""; prefs.set("where", ""); render(); });
+/* Location suggestions: towns, neighbourhoods and areas we know, best matches first */
+let sugAt = -1;
+function whereNames(){ return [...new Set([...S.places.map(areaOf), ...Object.keys(PLACES_LL)])].sort((a, b) => a.localeCompare(b)); }
+function showSug(){
+  const ul = $("#whereSug"), inp = $("#where"), q = norm(inp.value.trim());
+  if (document.activeElement !== inp){ ul.hidden = true; inp.setAttribute("aria-expanded", "false"); return; }
+  const all = whereNames();
+  const hits = !q ? all.slice(0, 8)
+    : [...all.filter(n => norm(n).startsWith(q)), ...all.filter(n => !norm(n).startsWith(q) && norm(n).includes(q))].slice(0, 8);
+  const exact = hits.length === 1 && norm(hits[0]) === q;
+  sugAt = Math.min(sugAt, hits.length - 1);
+  ul.innerHTML = hits.map((n, i) => {
+    const k = norm(n).indexOf(q), lab = q && k >= 0 ? esc(n.slice(0, k)) + "<b>" + esc(n.slice(k, k + q.length)) + "</b>" + esc(n.slice(k + q.length)) : esc(n);
+    return `<li role="option" id="ws${i}" data-where="${esc(n)}" aria-selected="${i === sugAt}">📍 ${lab}</li>`;
+  }).join("");
+  ul.hidden = !hits.length || exact;
+  inp.setAttribute("aria-expanded", String(!ul.hidden));
+  if (sugAt >= 0) inp.setAttribute("aria-activedescendant", "ws" + sugAt); else inp.removeAttribute("aria-activedescendant");
+}
+function pickWhere(n){
+  S.where = n; $("#where").value = n; prefs.set("where", n); sugAt = -1;
+  $("#whereSug").hidden = true; $("#where").setAttribute("aria-expanded", "false"); $("#where").blur(); render();
+}
+$("#where").addEventListener("input", e => { S.where = e.target.value; prefs.set("where", S.where); sugAt = -1; render(); showSug(); });
+$("#where").addEventListener("focus", () => {
+  sugAt = -1; showSug();
+  // On phones, lift the box near the top so the keyboard doesn't cover the suggestions
+  if (innerWidth < 700) setTimeout(() => { const r = $("#where").getBoundingClientRect(), head = ($(".topbar") || $("header"))?.offsetHeight || 64; window.scrollTo({top: Math.max(0, scrollY + r.top - head - 56), behavior: calm() ? "auto" : "smooth"}); }, 250);
+});
+$("#where").addEventListener("blur", () => setTimeout(showSug, 150));
+$("#where").addEventListener("keydown", e => {
+  const ul = $("#whereSug"), n = ul.hidden ? 0 : ul.children.length;
+  if (e.key === "ArrowDown" && n){ e.preventDefault(); sugAt = (sugAt + 1) % n; showSug(); return; }
+  if (e.key === "ArrowUp" && n){ e.preventDefault(); sugAt = (sugAt - 1 + n) % n; showSug(); return; }
+  if (e.key === "Escape" && n){ ul.hidden = true; return; }
+  if (e.key === "Enter"){
+    e.preventDefault();
+    if (n && sugAt >= 0){ pickWhere(ul.children[sugAt].dataset.where); return; }
+    e.target.blur(); spin();
+  }
+});
+// pointerdown (not click) so the choice lands before the box loses focus
+$("#whereSug").addEventListener("pointerdown", e => { const li = e.target.closest("[data-where]"); if (li){ e.preventDefault(); pickWhere(li.dataset.where); } });
+$("#whereClear").addEventListener("click", () => { S.where = ""; $("#where").value = ""; prefs.set("where", ""); render(); $("#where").focus(); });
 document.querySelectorAll("[data-pool]").forEach(b => b.addEventListener("click", () => { S.pool = b.dataset.pool; local.save(); render(); }));
 document.querySelectorAll("form.add").forEach(f => f.addEventListener("submit", e => {
   e.preventDefault(); const inp = f.querySelector("input"); add(f.dataset.list, inp.value); inp.value = ""; inp.focus();
