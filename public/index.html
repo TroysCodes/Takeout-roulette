@@ -1202,12 +1202,22 @@ let sugAt = -1;
 // Suggestions stay inside the City of Hamilton (Burlington and Caledonia are neighbours, not part of it)
 const NOT_HAMILTON = new Set(["Burlington", "Caledonia"]);
 function whereNames(){ return [...new Set([...S.places.map(areaOf), ...Object.keys(PLACES_LL)])].filter(n => !NOT_HAMILTON.has(n)).sort((a, b) => a.localeCompare(b)); }
+// Street names from the restaurants' addresses, e.g. "919 Upper Paradise Rd, ..." -> "Upper Paradise Rd"
+const SUFFIX = new Set(["st","street","rd","road","ave","avenue","dr","drive","blvd","hwy","ln","lane","ct","cres","way","pkwy","n","s","e","w","unit"]);
+function streetNames(){
+  const out = new Set();
+  S.places.forEach(pl => { const m = (pl.address || "").split(",")[0].trim().match(/^[#\d][\w-]*\s+(.+)$/); if (m && /[a-z]{3}/i.test(m[1]) && !/^(unit|suite)\b/i.test(m[1])) out.add(m[1].replace(/\s+(unit|suite|#)\s*\S*$/i, "").trim()); });
+  return [...out].sort((a, b) => a.localeCompare(b));
+}
 function showSug(){
   const ul = $("#whereSug"), inp = $("#where"), q = norm(inp.value.trim());
-  if (document.activeElement !== inp){ ul.hidden = true; inp.setAttribute("aria-expanded", "false"); return; }
-  const all = whereNames();
-  const hits = !q ? all.slice(0, 8)
-    : [...all.filter(n => norm(n).startsWith(q)), ...all.filter(n => !norm(n).startsWith(q) && norm(n).includes(q))].slice(0, 8);
+  // Only once they start typing, and only while the box has focus
+  if (document.activeElement !== inp || !q){ ul.hidden = true; ul.innerHTML = ""; inp.setAttribute("aria-expanded", "false"); return; }
+  const areas = whereNames(), streets = streetNames().filter(n => !areas.includes(n));
+  const starts = l => l.filter(n => norm(n).startsWith(q) || norm(n).split(/\s+/).some(w => !SUFFIX.has(w) && w.startsWith(q)));
+  const first = [...starts(areas).sort((a, b) => norm(b).startsWith(q) - norm(a).startsWith(q)), ...starts(streets).sort((a, b) => norm(b).startsWith(q) - norm(a).startsWith(q))];
+  // Fall back to "contains" matches only when few names start with what they typed
+  const hits = [...new Set([...first, ...(first.length < 3 ? [...areas, ...streets].filter(n => norm(n).includes(q)) : [])])].slice(0, 8);
   const exact = hits.length === 1 && norm(hits[0]) === q;
   sugAt = Math.min(sugAt, hits.length - 1);
   ul.innerHTML = hits.map((n, i) => {
